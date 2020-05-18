@@ -1,10 +1,10 @@
 name = "VolumeRegistration"
-uuid = "c04be8af-255f-4eac-baeb-b095cde5f161"
-authors = ["Vilim"]
+uuid = "fc41fb7d-15c6-4320-bc68-d176a63a31d9"
+authors = ["Vilim <vilim@neuro.mpg.de> and contributors"]
 version = "0.1.0"
 
 [compat]
-julia = "1.3.1"
+julia = "1"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
