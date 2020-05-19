@@ -3,6 +3,13 @@ uuid = "fc41fb7d-15c6-4320-bc68-d176a63a31d9"
 authors = ["Vilim <vilim@neuro.mpg.de> and contributors"]
 version = "0.1.0"
 
+[deps]
+AbstractFFTs = "621f4979-c628-5d54-868e-fcf4e3e8185c"
+CuArrays = "3a865a2d-5b23-5a0f-bc46-62713ec82fae"
+FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+
 [compat]
 julia = "1"
 
