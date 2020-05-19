@@ -1,4 +1,4 @@
-function gaussian_border_window(T::Type, dimensions::NTuple{N, Integer}, σ) where {N}
+function gaussian_border_mask(T::Type, dimensions::NTuple{N, Integer}, σ) where {N}
     mask = ones(T, dimensions)
     mask_indices = CartesianIndices(mask)
     last_idx = last(mask_indices).I
@@ -8,6 +8,14 @@ function gaussian_border_window(T::Type, dimensions::NTuple{N, Integer}, σ) whe
         mask[idx] = prod((1 ./ (1 .+ exp.((abs.(idx.I .- mid_idx) .- correction) ./ σ))))
     end
     return mask
+end
+
+function gaussian_border_mask(dimensions::NTuple{N, Integer}, σ) where {N}
+    return gaussian_border_mask(Float32, dimensions, σ)
+end
+
+function mask_offset(image, mask)
+    return mean(image) .* (1 .- mask)
 end
 
 function spatial_smooth(a::AbstractArray{T,N}, n_smooth::NTuple{N, Integer}) where {T, N}

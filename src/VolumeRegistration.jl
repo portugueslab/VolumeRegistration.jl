@@ -1,12 +1,17 @@
 module VolumeRegistration
 
 using AbstractFFTs
+using FFTW
 using LinearAlgebra
 using StaticArrays
-using FFTW
+using Statistics
+
 
 include("window.jl")
-include("registration.jl")
 include("kriging.jl")
+include("phase_correlation.jl")
+include("translation.jl")
+
+export find_translation
 
 end
