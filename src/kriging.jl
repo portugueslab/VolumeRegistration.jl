@@ -49,7 +49,6 @@ function upsampled_shift(u::KrigingUpsampler{N,AT},  v::AbstractArray{T,M}) wher
     n_els = size(v)[N+1]
     upsampled_indices = CartesianIndices(u.upsampled_size)
     max_vals, max_inds = findmax(permutedims(reshape(v, :, n_els)) * u.upsampling_mat, dims=2)
-    @show max_inds
     half_ups_size = u.upsampled_size .÷ 2 .+ 1
     return [(upsampled_indices[mi.I[2]].I .- half_ups_size) ./ u.upsampling for mi in max_inds]
 end
