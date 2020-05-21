@@ -11,6 +11,7 @@ include("window.jl")
 include("kriging.jl")
 include("phase_correlation.jl")
 include("translation.jl")
+include("shifting.jl")
 
 export find_translation
 
