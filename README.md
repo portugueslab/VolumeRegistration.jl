@@ -8,7 +8,7 @@
 
 Calcium imaging registration pipeline, a rewrite of the [Suite2p](https://github.com/MouseLand/suite2p) approach in Julia.
 
-# Usage
+## Usage
 
 ```julia
 

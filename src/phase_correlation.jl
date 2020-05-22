@@ -28,7 +28,7 @@ end
 
 function prepare_fft_reference(target_img::AbstractArray{T, N}, σ_ref) where {T, N}
     output = Complex{T}.(target_img)
-    prepare_fft_reference!(target_img, σ_ref)
+    prepare_fft_reference!(output, σ_ref)
     return output
 end
 
