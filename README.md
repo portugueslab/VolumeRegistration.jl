@@ -1,6 +1,7 @@
 # VolumeRegistration.jl
 
 [![Build Status](https://travis-ci.com/portugueslab/VolumeRegistration.jl.svg?branch=master)](https://travis-ci.com/portugueslab/VolumeRegistration.jl)
+![CI](https://github.com/portugueslab/VolumeRegistration.jl/workflows/CI/badge.svg)
 [![codecov](https://codecov.io/gh/portugueslab/VolumeRegistration.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/portugueslab/VolumeRegistration.jl)
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://vilim.github.io/VolumeRegistration.jl/stable)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://vilim.github.io/VolumeRegistration.jl/dev)
