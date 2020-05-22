@@ -17,5 +17,5 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/vilim/VolumeRegistration.jl",
+    repo="github.com/portugueslab/VolumeRegistration.jl",
 )

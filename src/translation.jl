@@ -31,12 +31,12 @@ function find_translation(moving::AbstractArray{T, N}, reference::AbstractArray{
 end
 
 
-# method for time-series with the same reference
+# method for aligning a time-series with the same reference
+# the steps are identical as above, apart from some optimizations
 function find_translation(movings::AbstractArray{T, M}, reference::AbstractArray{T, N}; σ_filter=nothing, max_shift=10, border_σ=0, upsampling=1, upsample_padding=nothing) where {N, M, T}
     if border_σ > 0
         mask = gaussian_border_mask(size(reference), border_σ)
         reference_mask_offset = mask_offset(reference, mask)
-        reference .*= mask
     end
 
     # Move the reference to Fourier domain as it is common for the whole registration
@@ -62,7 +62,7 @@ function find_translation(movings::AbstractArray{T, M}, reference::AbstractArray
 
     for i_t in 1:n_t
         if border_σ > 0
-            moving_corr = phase_correlation(fft_plan*((movings[(Colon() for i in 1:M-1)..., i_t] .* mask) .+ reference_mask_offset), fft_ref)
+            moving_corr = phase_correlation(fft_plan*((movings[(Colon() for i in 1:M-1)..., i_t] .* mask .+ reference_mask_offset) .+ reference_mask_offset), fft_ref)
         else
             moving_corr = phase_correlation(fft_plan*(movings[(Colon() for i in 1:M-1)..., i_t]), fft_ref)
         end

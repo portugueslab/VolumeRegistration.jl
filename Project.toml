@@ -8,14 +8,17 @@ AbstractFFTs = "621f4979-c628-5d54-868e-fcf4e3e8185c"
 CuArrays = "3a865a2d-5b23-5a0f-bc46-62713ec82fae"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
+JuliennedArrays = "5cadff95-7770-533d-a838-a1bf817ee6e0"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+PaddedBlocks = "00ed6140-19f5-4745-8680-fdb6f4f73d16"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [compat]
 AbstractFFTs = "0.5"
-FFTW = "1.2"
 CuArrays = "2.2"
+FFTW = "1.2"
+PaddedBlocks = "0.1"
 StaticArrays = "0.12"
 julia = "1"
 

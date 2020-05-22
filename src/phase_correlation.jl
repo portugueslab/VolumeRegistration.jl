@@ -25,12 +25,21 @@ function gaussian_fft_filter(shape::NTuple{N, Integer}, σ::T) where {N, T}
     return T.(real(fft(ifftshift(gauss_filt))))
 end
 
-function prepare_fft_reference(target_img, σ_ref::Real)
-    return normalize.(conj.(fft(target_img))) .* gaussian_fft_filter(size(target_img), σ_ref)
+
+function prepare_fft_reference(target_img::AbstractArray{T, N}, σ_ref) where {T, N}
+    output = Complex{T}.(target_img)
+    prepare_fft_reference!(target_img, σ_ref)
+    return output
+end
+
+function prepare_fft_reference!(target_img, σ_ref::Real)
+    fft!(target_img)
+    target_img .= normalize.(conj.(target_img)) .* gaussian_fft_filter(size(target_img), σ_ref)
 end
 
 function prepare_fft_reference(target_img, σ_ref::Nothing)
-    return normalize.(conj.(fft(target_img)))
+    fft!(target_img)
+    target_img .= normalize.(conj.(target_img))
 end
 
 function phase_correlation(src_img::AbstractArray{T,N}, target_img::AbstractArray{T,N}; σ_ref::Union{Nothing, Real}=T(1.15)) where {T <:Real, N}
