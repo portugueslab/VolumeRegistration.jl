@@ -5,13 +5,14 @@ Find the shift to move `moving` by to align with `reference`
 - `border_σ`: the width of the border kernal for a smooth faloff towards the edges
 - `upsampling::Integer=1`: If bigger than 1, how much to upsample the shifts by (for subpixel registration)
 """
-function find_translation(moving::AbstractArray{T, N}, reference::AbstractArray{T, N}; max_shift=10, border_σ=0, upsampling=1, upsample_padding=nothing) where {N, T}
+function find_translation(moving::AbstractArray{T, N}, reference::AbstractArray{T, N}; σ_filter=nothing, max_shift=10, border_σ=0, upsampling=1, upsample_padding=nothing) where {N, T}
     if border_σ > 0
         mask = gaussian_border_mask(size(reference), border_σ)
         reference_mask_offset = mask_offset(reference, mask)
-        moving_corr = phase_correlation((moving .* mask) .+ reference_mask_offset, reference)
+        moving_corr = phase_correlation((moving .* mask) .+ reference_mask_offset,
+                                        reference, σ_ref=σ_filter)
     else
-        moving_corr = phase_correlation(moving, reference)
+        moving_corr = phase_correlation(moving, reference, σ_ref=σ_filter)
     end
 
     window_size = to_ntuple(Val{N}(), max_shift) .* 2 .+ 1
@@ -31,7 +32,7 @@ end
 
 
 # method for time-series with the same reference
-function find_translation(movings::AbstractArray{T, M}, reference::AbstractArray{T, N}; max_shift=10, border_σ=0, upsampling=1, upsample_padding=nothing) where {N, M, T}
+function find_translation(movings::AbstractArray{T, M}, reference::AbstractArray{T, N}; σ_filter=nothing, max_shift=10, border_σ=0, upsampling=1, upsample_padding=nothing) where {N, M, T}
     if border_σ > 0
         mask = gaussian_border_mask(size(reference), border_σ)
         reference_mask_offset = mask_offset(reference, mask)
@@ -39,7 +40,7 @@ function find_translation(movings::AbstractArray{T, M}, reference::AbstractArray
     end
 
     # Move the reference to Fourier domain as it is common for the whole registration
-    fft_ref = prepare_fft_reference(reference)
+    fft_ref = prepare_fft_reference(reference, σ_filter)
 
     window_size = to_ntuple(Val{N}(), max_shift) .* 2 .+ 1
 
@@ -73,19 +74,4 @@ function find_translation(movings::AbstractArray{T, M}, reference::AbstractArray
         end
     end
     return shifts
-end
-
-"""
-Small utilities to get window size from iterables or single number
-"""
-function to_ntuple(::Val{N}, val::Number) where {N}
-    return ntuple(x->val, Val{N}())
-end
-
-function to_ntuple(::Val{N}, val::NTuple{N, T}) where {N, T}
-    return val
-end
-
-function to_ntuple(::Val{N}, val) where {N}
-    error("Unsupported paramter format")
 end

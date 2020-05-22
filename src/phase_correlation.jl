@@ -12,15 +12,20 @@ function normalize(x::Complex{T}) where {T}
     return x / (abs(x) + eps(T))
 end
 
-function gaussian_fft_filter(shape, σ)
-    mid_shape = shape ./ 2
-    σ2 = 2*(σ^2)
-    gauss_filt = Float32.([exp(-sum((idx.I .- mid_shape).^2)/σ2) for idx in CartesianIndices(shape)])
+"""
+Gaussian filter in the fourier domain
+(a Gaussian in the fourier domain as again a gaussian with inverse variance)
+
+"""
+function gaussian_fft_filter(shape::NTuple{N, Integer}, σ::T) where {N, T}
+    σ2 = (VolumeRegistration.to_ntuple(Val{N}(), σ) .^ 2) ./ 2
+    kernels = [exp.(-(((1:s) .- s/2).^2) .* σs) for (s, σs) in zip(shape, σ2)]
+    gauss_filt = T.([prod(k) for k in Iterators.product(kernels...)])
     gauss_filt ./= sum(gauss_filt)
-    return Float32.(real(fft(ifftshift(gauss_filt))))
+    return T.(real(fft(ifftshift(gauss_filt))))
 end
 
-function prepare_fft_reference(target_img, σ_ref::Real=1.15f0)
+function prepare_fft_reference(target_img, σ_ref::Real)
     return normalize.(conj.(fft(target_img))) .* gaussian_fft_filter(size(target_img), σ_ref)
 end
 
@@ -29,7 +34,7 @@ function prepare_fft_reference(target_img, σ_ref::Nothing)
 end
 
 function phase_correlation(src_img::AbstractArray{T,N}, target_img::AbstractArray{T,N}; σ_ref::Union{Nothing, Real}=T(1.15)) where {T <:Real, N}
-    return phase_correlation(fft(src_img), prepare_fft_reference(target_img, filter)) 
+    return phase_correlation(fft(src_img), prepare_fft_reference(target_img, σ_ref)) 
 end
 
 function phase_correlation(src_img::AbstractArray{T,N}, target_img::AbstractArray{T2,N}) where {T <:Real, T2 <:Complex, N}
@@ -37,17 +42,22 @@ function phase_correlation(src_img::AbstractArray{T,N}, target_img::AbstractArra
 end
 
 function phase_correlation(src_freq::AbstractArray{T, N}, target_freq::AbstractArray{T, N}) where {T <: Complex{T2}, N} where {T2}
-    image_product = normalize.(src_freq) .* target_freq;
-    ifft!(image_product)
-    return image_product
+    src_freq .= normalize.(src_freq) .* target_freq;
+    ifft!(src_freq)
+    return src_freq
 end
 
 """
 Takes the data corresponding to the real part of the corners of the 
 phase correlation array of interest for shift finding
 
+$(SIGNATURES)
+
+# Arugments
+
+
 """
-function extract_low_frequencies(data::AbstractArray{Complex{T}, N}, corner_size::NTuple{N, Integer}) where {T, N}
+function extract_low_frequencies(data::AbstractArray{Complex{T}, N}, corner_size::NTuple{N, Integer}, interpolate_middle=false) where {T, N}
     corner = Array{T}(undef, corner_size)
     mid_val = corner_size .÷ 2 
     data_size = size(data)
@@ -56,6 +66,15 @@ function extract_low_frequencies(data::AbstractArray{Complex{T}, N}, corner_size
         idx_original = ((x, mid, full) -> (x > mid) ? (x - mid) : full - mid + x).(idx.I, mid_val, data_size)
         corner[idx] = real(data[idx_original...])
     end
+
+    # if interpolating the middle, average the values in the cross-shaped area around it
+    if interpolate_middle
+        corner[(mid_val .+ 1)...] = mean(
+            corner[(mid_val .+ 1 .+ ntuple(i->i_dim == i ? 1 : 0, Val{N}))] +
+            corner[(mid_val .+ 1 .+ ntuple(i->i_dim == i ? -1 : 0, Val{N}))]
+            for i_dim in 1:N) / 2
+    end
+
     return corner
 end
 
