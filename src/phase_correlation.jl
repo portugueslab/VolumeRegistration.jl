@@ -37,7 +37,7 @@ function prepare_fft_reference!(target_img, σ_ref::Real)
     target_img .= normalize.(conj.(target_img)) .* gaussian_fft_filter(size(target_img), σ_ref)
 end
 
-function prepare_fft_reference(target_img, σ_ref::Nothing)
+function prepare_fft_reference!(target_img, σ_ref::Nothing)
     fft!(target_img)
     target_img .= normalize.(conj.(target_img))
 end
