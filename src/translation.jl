@@ -60,11 +60,13 @@ function find_translation(movings::AbstractArray{T, M}, reference::AbstractArray
     # Prpare the FFT plan for faster FFTs of images of same size
     fft_plan = plan_fft(reference)
 
+    moving_slices = Slices(movings, (1:N)...)
+
     for i_t in 1:n_t
         if border_σ > 0
-            moving_corr = phase_correlation(fft_plan*((movings[(Colon() for i in 1:M-1)..., i_t] .* mask .+ reference_mask_offset) .+ reference_mask_offset), fft_ref)
+            moving_corr = phase_correlation(fft_plan*(moving_slices[i_t] .* mask .+ reference_mask_offset), fft_ref)
         else
-            moving_corr = phase_correlation(fft_plan*(movings[(Colon() for i in 1:M-1)..., i_t]), fft_ref)
+            moving_corr = phase_correlation(fft_plan*(moving_slices[i_t]), fft_ref)
         end
     
         if upsampling !== 1

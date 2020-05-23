@@ -14,15 +14,15 @@ end
 
 """
 Gaussian filter in the fourier domain
-(a Gaussian in the fourier domain as again a gaussian with inverse variance)
+(a Gaussian in the fourier domain is again a gaussian with inverse variance)
 
 """
-function gaussian_fft_filter(shape::NTuple{N, Integer}, σ::T) where {N, T}
-    σ2 = (VolumeRegistration.to_ntuple(Val{N}(), σ) .^ 2) ./ 2
-    kernels = [exp.(-(((1:s) .- s/2).^2) .* σs) for (s, σs) in zip(shape, σ2)]
-    gauss_filt = T.([prod(k) for k in Iterators.product(kernels...)])
+function gaussian_fft_filter(shape::NTuple{N, Integer}, σ::Union{T, NTuple{N, T}}) where {N, T}
+    σ2 = (to_ntuple(Val{N}(), σ) .^ 2) .* 2
+    kernels = [exp.(-(((1:s) .- s/2).^2) ./ σs) for (s, σs) in zip(shape, σ2)]
+    gauss_filt = ([prod(k) for k in Iterators.product(kernels...)])
     gauss_filt ./= sum(gauss_filt)
-    return T.(real(fft(ifftshift(gauss_filt))))
+    return T.(abs.(fft(ifftshift(gauss_filt))))
 end
 
 

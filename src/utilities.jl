@@ -12,3 +12,11 @@ end
 function to_ntuple(::Val{N}, val) where {N}
     error("Unsupported paramter format")
 end
+
+function ncolons(::Val{N}) where {N}
+    return ntuple(x->Colon(), Val{N}())
+end
+
+function nones(::Val{N}) where {N}
+    return ntuple(x->1, Val{N}())
+end
