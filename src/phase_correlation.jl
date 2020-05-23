@@ -95,10 +95,14 @@ function phase_correlation_shift(pc, window_size)
 end
 
 function phase_correlation_shift(pc, window_size, us)
-    os_mid = us.original_size .÷ 2
     window_size = min.(size(pc), window_size)
-    window_mid  = window_size .÷ 2 .+ 1
     lf = VolumeRegistration.extract_low_frequencies(pc, window_size)
+    return shift_around_maximum(us, lf)
+end
+
+function shift_around_maximum(us, lf)
+    window_mid  = size(lf) .÷ 2 .+ 1
+    os_mid = us.original_size .÷ 2
     max_loc = argmax(lf[CartesianIndex(os_mid):CartesianIndex(size(lf) .- os_mid)]).I .+ os_mid .-1
     ups_shift = VolumeRegistration.upsampled_shift(us, lf[CartesianIndex(max_loc .- os_mid) : CartesianIndex(max_loc .+ os_mid)])
     return ups_shift .+ max_loc .- window_mid

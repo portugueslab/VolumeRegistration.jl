@@ -2,7 +2,7 @@
 Find the shift to move `moving` by to align with `reference`
 
 # Arguments
-- `border_σ`: the width of the border kernal for a smooth faloff towards the edges
+- `border_σ`: the width of the border kernel for a smooth faloff towards the edges
 - `upsampling::Integer=1`: If bigger than 1, how much to upsample the shifts by (for subpixel registration)
 """
 function find_translation(moving::AbstractArray{T, N}, reference::AbstractArray{T, N}; σ_filter=nothing, max_shift=10, border_σ=0, upsampling=1, upsample_padding=nothing) where {N, T}
