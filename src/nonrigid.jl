@@ -28,10 +28,6 @@ function split_into_blocks(
     return blocked_data
 end
 
-function default_block_size(N)
-    return N == 2 ? (128, 128) : (128, 128, 4)
-end
-
 function block_masks_offsets(
     reference::AbstractArray{T,N},
     mask,
@@ -80,17 +76,31 @@ function calc_snr(cc::AbstractArray{T,N}, n_pad) where {T,N}
     return max_val / max_noise_val
 end
 
+function default_block_size(N)
+    return N == 2 ? (128, 128) : (128, 128, 4)
+end
+
+function default_upsampling(N)
+    return N == 2 ? (10, 10) : (8, 8, 4)
+end
+
+"""
+Find deformation maps by splitting the dataset in blocks
+and aligning blocks with subpixel precision
+
+"""
 function find_deformation_map(
     moving::AbstractArray{T,N},
     reference::AbstractArray{T,N};
     block_size = default_block_size(N),
     block_border_σ,
-    max_shift=15,
+    max_shift=5,
     border_σ = nothing,
     σ_filter = nothing,
     snr_n_interpolations = 2,
     snr_threshold = 1.15,
     snr_n_pad = 3,
+    upsampling = default_upsampling(N)
 ) where {T,N}
 
     # prepare blocks and split the reference into the blocks

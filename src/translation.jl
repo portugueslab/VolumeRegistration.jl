@@ -5,36 +5,54 @@ Find the shift to move `moving` by to align with `reference`
 - `border_σ`: the width of the border kernel for a smooth faloff towards the edges
 - `upsampling::Integer=1`: If bigger than 1, how much to upsample the shifts by (for subpixel registration)
 """
-function find_translation(moving::AbstractArray{T, N}, reference::AbstractArray{T, N}; σ_filter=nothing, max_shift=10, border_σ=0, upsampling=1, upsample_padding=nothing) where {N, T}
-    if border_σ > 0
+function find_translation(
+    moving::AbstractArray{T,N},
+    reference::AbstractArray{T,N};
+    σ_filter = nothing,
+    max_shift = 10,
+    border_σ = 0,
+    upsampling = 1,
+    upsample_padding = nothing,
+) where {N,T}
+    if border_σ != 0
         mask = gaussian_border_mask(size(reference), border_σ)
         reference_mask_offset = mask_offset(reference, mask)
-        moving_corr = phase_correlation((moving .* mask) .+ reference_mask_offset,
-                                        reference, σ_ref=σ_filter)
+        moving_corr = phase_correlation(
+            (moving .* mask) .+ reference_mask_offset,
+            reference,
+            σ_ref = σ_filter,
+        )
     else
-        moving_corr = phase_correlation(moving, reference, σ_ref=σ_filter)
+        moving_corr = phase_correlation(moving, reference, σ_ref = σ_filter)
     end
 
     window_size = to_ntuple(Val{N}(), max_shift) .* 2 .+ 1
-    if upsampling !== 1
+    return if upsampling !== 1
         upsampling = to_ntuple(Val{N}(), upsampling)
         if upsample_padding === nothing
             upsample_padding = (upsampling .÷ 2 .- 2)
         else
             upsample_padding = to_ntuple(Val{N}(), upsample_padding)
         end
-        us = KrigingUpsampler(upsampling=upsampling, padding=upsample_padding)
+        us = KrigingUpsampler(upsampling = upsampling, padding = upsample_padding)
         return phase_correlation_shift(moving_corr, window_size, us)
     else
         return phase_correlation_shift(moving_corr, window_size)
     end
 end
 
-
 # method for aligning a time-series with the same reference
 # the steps are identical as above, apart from some optimizations
-function find_translation(movings::AbstractArray{T, M}, reference::AbstractArray{T, N}; σ_filter=nothing, max_shift=10, border_σ=0, upsampling=1, upsample_padding=nothing) where {N, M, T}
-    if border_σ > 0
+function find_translation(
+    movings::AbstractArray{T,M},
+    reference::AbstractArray{T,N};
+    σ_filter = nothing,
+    max_shift = 15,
+    border_σ = 0,
+    upsampling = 1,
+    upsample_padding = nothing,
+) where {N,M,T}
+    if border_σ != 0
         mask = gaussian_border_mask(size(reference), border_σ)
         reference_mask_offset = mask_offset(reference, mask)
     end
@@ -44,8 +62,12 @@ function find_translation(movings::AbstractArray{T, M}, reference::AbstractArray
 
     window_size = to_ntuple(Val{N}(), max_shift) .* 2 .+ 1
 
-    n_t = size(movings)[end]    
-    shifts = Array{NTuple{N, Float32}}(undef, n_t)
+    n_t = size(movings)[end]
+    if upsampling != 1
+        shifts = Array{NTuple{N,Float32}}(undef, n_t)
+    else
+        shifts = Array{NTuple{N,Int32}}(undef, n_t)
+    end
 
     if upsampling !== 1
         upsampling = to_ntuple(Val{N}(), upsampling)
@@ -54,7 +76,7 @@ function find_translation(movings::AbstractArray{T, M}, reference::AbstractArray
         else
             upsample_padding = to_ntuple(Val{N}(), upsample_padding)
         end
-        us = KrigingUpsampler(upsampling=upsampling, padding=upsample_padding)
+        us = KrigingUpsampler(upsampling = upsampling, padding = upsample_padding)
     end
 
     # Prpare the FFT plan for faster FFTs of images of same size
@@ -63,12 +85,15 @@ function find_translation(movings::AbstractArray{T, M}, reference::AbstractArray
     moving_slices = Slices(movings, (1:N)...)
 
     for i_t in 1:n_t
-        if border_σ > 0
-            moving_corr = phase_correlation(fft_plan*(moving_slices[i_t] .* mask .+ reference_mask_offset), fft_ref)
+        if border_σ != 0
+            moving_corr = phase_correlation(
+                fft_plan * (moving_slices[i_t] .* mask .+ reference_mask_offset),
+                fft_ref,
+            )
         else
-            moving_corr = phase_correlation(fft_plan*(moving_slices[i_t]), fft_ref)
+            moving_corr = phase_correlation(fft_plan * (moving_slices[i_t]), fft_ref)
         end
-    
+
         if upsampling !== 1
             shifts[i_t] = phase_correlation_shift(moving_corr, window_size, us)
         else
