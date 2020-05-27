@@ -32,7 +32,8 @@ function prepare_fft_reference(target_img::AbstractArray{T, N}, σ_ref) where {T
     return output
 end
 
-function prepare_fft_reference!(target_img, σ_ref::Real)
+function prepare_fft_reference!(target_img::AbstractArray{T, N},
+                                σ_ref::Union{Real, NTuple{N, T2}}) where {T, N, T2}
     fft!(target_img)
     target_img .= normalize.(conj.(target_img)) .* gaussian_fft_filter(size(target_img), σ_ref)
 end
@@ -101,9 +102,9 @@ function phase_correlation_shift(pc, window_size, us)
 end
 
 function shift_around_maximum(us, lf)
-    window_mid  = size(lf) .÷ 2 .+ 1
+    window_mid = size(lf) .÷ 2 .+ 1
     os_mid = us.original_size .÷ 2
-    max_loc = argmax(lf[CartesianIndex(os_mid):CartesianIndex(size(lf) .- os_mid)]).I .+ os_mid .-1
+    max_loc = argmax(lf[CartesianIndex(os_mid .+ 1):CartesianIndex(size(lf) .- os_mid)]).I .+ os_mid
     ups_shift = VolumeRegistration.upsampled_shift(us, lf[CartesianIndex(max_loc .- os_mid) : CartesianIndex(max_loc .+ os_mid)])
     return ups_shift .+ max_loc .- window_mid
 end
