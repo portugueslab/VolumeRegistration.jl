@@ -27,7 +27,7 @@ function find_translation(
     end
 
     window_size = to_ntuple(Val{N}(), max_shift) .* 2 .+ 1
-    return if upsampling !== 1
+    if upsampling !== 1
         upsampling = to_ntuple(Val{N}(), upsampling)
         if upsample_padding === nothing
             upsample_padding = (upsampling .÷ 2 .- 2)
@@ -35,10 +35,11 @@ function find_translation(
             upsample_padding = to_ntuple(Val{N}(), upsample_padding)
         end
         us = KrigingUpsampler(upsampling = upsampling, padding = upsample_padding)
-        return phase_correlation_shift(moving_corr, window_size, us)
+        shift, corr = phase_correlation_shift(moving_corr, window_size, us)
     else
-        return phase_correlation_shift(moving_corr, window_size)
+        shift, corr = phase_correlation_shift(moving_corr, window_size)
     end
+    return Translation(shift), corr
 end
 
 # method for aligning a time-series with the same reference
@@ -64,10 +65,12 @@ function find_translation(
 
     n_t = size(movings)[end]
     if upsampling != 1
-        shifts = Array{NTuple{N,Float32}}(undef, n_t)
+        shifts = Array{Translation{SVector{N, Float64}}}(undef, n_t)
     else
-        shifts = Array{NTuple{N,Int32}}(undef, n_t)
+        shifts = Array{Translation{SVector{N, Int64}}}(undef, n_t)
     end
+
+    correlations = Array{Float32}(undef, n_t)
 
     if upsampling !== 1
         upsampling = to_ntuple(Val{N}(), upsampling)
@@ -79,7 +82,7 @@ function find_translation(
         us = KrigingUpsampler(upsampling = upsampling, padding = upsample_padding)
     end
 
-    # Prpare the FFT plan for faster FFTs of images of same size
+    # Prepare the FFT plan for faster FFTs of images of same size
     fft_plan = plan_fft(reference)
 
     moving_slices = Slices(movings, (1:N)...)
@@ -95,10 +98,12 @@ function find_translation(
         end
 
         if upsampling !== 1
-            shifts[i_t] = phase_correlation_shift(moving_corr, window_size, us)
+            shift, corr = phase_correlation_shift(moving_corr, window_size, us)
         else
-            shifts[i_t] = phase_correlation_shift(moving_corr, window_size)
+            shift, corr = phase_correlation_shift(moving_corr, window_size)
         end
+        shifts[i_t] = Translation(shift)
+        correlations[i_t] = corr
     end
-    return shifts
+    return shifts, correlations
 end

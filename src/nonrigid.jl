@@ -76,13 +76,15 @@ function calc_snr(cc::AbstractArray{T,N}, n_pad) where {T,N}
     return max_val / max_noise_val
 end
 
-function default_block_size(N)
-    return N == 2 ? (128, 128) : (128, 128, 4)
+function shifts_to_extrapolation(shifts::AbstractArray{NTuple{N, T}, N}, blks) where {N, T <: Real}
+    axes_interp = Tuple(((0:nb-1)*(bs) .+ (bs + pd)/2) 
+    for (nb, bs, pd) in zip(blks.blocks_per_dim, blks.block_size, blks.padding))
+    shifts_dim = [LinearInterpolation(axes_interp, getindex.(shifts, i_dim), extrapolation_bc=Line())
+                  for i_dim in 1:N];
+
+    return sv -> SVector(Tuple(shifts_dim[i_dim]((sv[i_dim] for i_dim in 1:N)...) for i_dim in 1:N)) .+ sv
 end
 
-function default_upsampling(N)
-    return N == 2 ? (10, 10) : (8, 8, 4)
-end
 
 """
 Find deformation maps by splitting the dataset in blocks
@@ -92,15 +94,16 @@ and aligning blocks with subpixel precision
 function find_deformation_map(
     moving::AbstractArray{T,N},
     reference::AbstractArray{T,N};
-    block_size = default_block_size(N),
-    block_border_σ,
-    max_shift=5,
+    block_size = N == 2 ? (128, 128) : (128, 128, 5),
+    block_border_σ=1f0,
+    max_shift=3,
     border_σ = nothing,
     σ_filter = nothing,
     snr_n_interpolations = 2,
-    snr_threshold = 1.15,
-    snr_n_pad = 3,
-    upsampling = default_upsampling(N)
+    snr_threshold = 1.15f0,
+    snr_n_pad = N == 2 ? (3, 3) : (3, 3, 1),
+    upsampling = N == 2 ? (10, 10) : (8, 8, 4),
+    upsample_padding = N == 2 ? (3, 3) : (3, 3, 2)
 ) where {T,N}
 
     # prepare blocks and split the reference into the blocks
@@ -155,7 +158,7 @@ function find_deformation_map(
         end
     end
     
-    us = KrigingUpsampler()
+    us = KrigingUpsampler(upsampling=upsampling, padding=upsample_padding)
 
-    return reshape(shift_around_maximum.(Ref(us), selected_correlations), blocks.blocks_per_dim...)
+    return (reshape(shift_around_maximum.(Ref(us), selected_correlations), blocks.blocks_per_dim...), blocks)
 end

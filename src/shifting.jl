@@ -13,7 +13,8 @@ function fft_translate(a::AbstractArray{T, N}, shifts) where {N, T <: Complex }
 end
 
 
-function translate!(translated, a::AbstractArray{T, N}, shifts::NTuple{N, Integer}) where {N, T}
+function translate!(translated, a::AbstractArray{T, N}, translation::Translation{SVector{N, TT}}) where {N, T, TT <: Integer}
+    shifts = Tuple(translation.translation)
     full_indices = CartesianIndices(a)
     min_corner = first(full_indices)
     max_corner = last(full_indices)
@@ -24,41 +25,28 @@ function translate!(translated, a::AbstractArray{T, N}, shifts::NTuple{N, Intege
     return translated
 end
 
-function translate!(translated, a::AbstractArray{T, N}, shifts::NTuple{N, Real}) where {N, T}
-    translated .= fft_translate(a, shifts)
+function translate!(translated, a::AbstractArray{T, N}, translation::Translation{SVector{N, TT}}) where {N, T, TT <: Real}
+    translated .= fft_translate(a, Tuple(translation.translation))
 end
 
-function translate(a::AbstractArray{T, N}, shift::NTuple{N, Integer}) where {N, T}
-    translated = Array{Union{Missing, T}}(missing, size(a))
+# preallocation functions: allocates an union for missing
+function preallocate(::Type{T}, ::Missing, dimensions) where {T}
+    return Array{Union{T, Missing}}(missing, dimensions)
+end
+
+function preallocate(::Type{T}, val::T, dimensions) where {T}
+    return fill(val, dimensions)
+end
+
+function translate(a::AbstractArray{T, N}, shift::Translation, fill_value=zero(T)) where {N, T}
+    translated = preallocate(T, fill_value, size(a))
     translate!(translated, a, shift)
     return translated
 end
 
-function translate(a::AbstractArray{T, N}, shift::NTuple{N, Real}) where {T, N}
-    translated = Array{T}(undef, size(a))
-    translate!(translated, a, shift)
-    return translated
-end
-
-function translate(a::AbstractArray{T, M}, shifts::AbstractArray{NTuple{N, TS}, 1}) where {M, N, T, TS<:Integer}
-    translated = Array{Union{Missing, T}}(missing, size(a))
-    sliced_source = Slices(a, (1:N)...)
-    sliced_target = Slices(translated, (1:N)...)
-    for (i_sl, sl_source) in enumerate(sliced_source)
-        translate!(sliced_target[i_sl], sl_source, shifts[i_sl])
-    end
-    return translated
-end
-
-
-# version for subpixel shifts, does not have missings TODO handle without copy pasting
-function translate(a::AbstractArray{T, M}, shifts::AbstractArray{NTuple{N, TS}, 1}) where {M, N, T, TS<:Real}
-    translated = Array{T}(undef, size(a))
-    sliced_source = Slices(a, (1:N)...)
-    sliced_target = Slices(translated, (1:N)...)
-    for (i_sl, sl_source) in enumerate(sliced_source)
-        translate!(sliced_target[i_sl], sl_source, shifts[i_sl])
-    end
+function translate(a::AbstractArray{T, M}, shifts::AbstractArray{TR, 1}, fill_value=zero(T)) where {M, T, TR<:Translation}
+    translated = preallocate(T, fill_value, size(a))
+    foreach(translate!, eachslice(translated, dims=M), eachslice(a, dims=M), shifts)
     return translated
 end
 
