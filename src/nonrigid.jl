@@ -76,15 +76,27 @@ function calc_snr(cc::AbstractArray{T,N}, n_pad) where {T,N}
     return max_val / max_noise_val
 end
 
-function shifts_to_extrapolation(shifts::AbstractArray{NTuple{N, T}, N}, blks) where {N, T <: Real}
-    axes_interp = Tuple(((0:nb-1)*(bs) .+ (bs + pd)/2) 
-    for (nb, bs, pd) in zip(blks.blocks_per_dim, blks.block_size, blks.padding))
-    shifts_dim = [LinearInterpolation(axes_interp, getindex.(shifts, i_dim), extrapolation_bc=Line())
-                  for i_dim in 1:N];
+function shifts_to_extrapolation(
+    shifts::AbstractArray{NTuple{N,T},N},
+    blks,
+) where {N,T<:Real}
+    axes_interp = Tuple(
+        ((0:nb-1) * (bs) .+ (bs + pd) / 2)
+        for (nb, bs, pd) in zip(blks.blocks_per_dim, blks.block_size, blks.padding)
+    )
+    shifts_dim = [
+        LinearInterpolation(
+            axes_interp,
+            getindex.(shifts, i_dim),
+            extrapolation_bc = Line(),
+        ) for i_dim in 1:N
+    ]
 
-    return sv -> SVector(Tuple(shifts_dim[i_dim]((sv[i_dim] for i_dim in 1:N)...) for i_dim in 1:N)) .+ sv
+    return sv ->
+        SVector(Tuple(
+            shifts_dim[i_dim]((sv[i_dim] for i_dim in 1:N)...) for i_dim in 1:N
+        )) .+ sv
 end
-
 
 """
 Find deformation maps by splitting the dataset in blocks
@@ -95,15 +107,15 @@ function find_deformation_map(
     moving::AbstractArray{T,N},
     reference::AbstractArray{T,N};
     block_size = N == 2 ? (128, 128) : (128, 128, 5),
-    block_border_σ=1f0,
-    max_shift=3,
+    block_border_σ = 1f0,
+    max_shift = 3,
     border_σ = nothing,
     σ_filter = nothing,
     snr_n_interpolations = 2,
     snr_threshold = 1.15f0,
     snr_n_pad = N == 2 ? (3, 3) : (3, 3, 1),
     upsampling = N == 2 ? (10, 10) : (8, 8, 4),
-    upsample_padding = N == 2 ? (3, 3) : (3, 3, 2)
+    upsample_padding = N == 2 ? (3, 3) : (3, 3, 2),
 ) where {T,N}
 
     # prepare blocks and split the reference into the blocks
@@ -120,26 +132,31 @@ function find_deformation_map(
     blocked_masks, blocked_offsets =
         block_masks_offsets(reference, mask, blocks, block_border_σ)
 
-    blocked_moving = Slices(split_into_blocks(moving, blocks), (1:N)...)
+    # prepare the upsampling and fft computations
+    block_fft_plan = plan_fft(blockwise_reference[1])
+    us = KrigingUpsampler(upsampling = upsampling, padding = upsample_padding)
 
-    block_fft_plan = plan_fft(blocked_moving[1])
+    blockwise_moving = Slices(split_into_blocks(moving, blocks), (1:N)...)
 
     window_size = to_ntuple(Val{N}(), max_shift) .* 2 .+ 1
 
     # phase correlations and signal to noise ratios
     block_correlations =
-        extract_low_frequencies.(phase_correlation.(
-            Ref(block_fft_plan) .*
-            apply_mask.(
-                blocked_moving,
-                Slices(blocked_masks, (1:N)...),
-                Slices(blocked_offsets, (1:N)...),
+        extract_low_frequencies.(
+            phase_correlation.(
+                Ref(block_fft_plan) .*
+                apply_mask.(
+                    blockwise_moving,
+                    Slices(blocked_masks, (1:N)...),
+                    Slices(blocked_offsets, (1:N)...),
+                ),
+                blockwise_reference,
             ),
-            blockwise_reference,
-        ), Ref(window_size))
+            Ref(window_size),
+        )
 
     block_correlation_blur = block_distance_kernel(blocks)
-    
+
     # blur phase correlations weighted by SNR
     blurred_correlations = [block_correlations]
     selected_correlations = deepcopy(block_correlations)
@@ -157,8 +174,12 @@ function find_deformation_map(
             selected_correlations[i_block] .= blurred_correlations[i_blur][i_block]
         end
     end
-    
-    us = KrigingUpsampler(upsampling=upsampling, padding=upsample_padding)
 
-    return (reshape(shift_around_maximum.(Ref(us), selected_correlations), blocks.blocks_per_dim...), blocks)
+    return (
+        reshape(
+            getindex.(shift_around_maximum.(Ref(us), selected_correlations), 1),
+            blocks.blocks_per_dim...,
+        ),
+        blocks,
+    )
 end
