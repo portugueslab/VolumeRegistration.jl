@@ -13,7 +13,7 @@ function find_translation(
     border_σ = 0,
     upsampling = 1,
     upsample_padding = nothing,
-) where {N,T}
+) where {N,T,TM}
     if border_σ != 0
         mask = gaussian_border_mask(size(reference), border_σ)
         reference_mask_offset = mask_offset(reference, mask)
@@ -48,7 +48,7 @@ function find_translation(
     movings::AbstractArray{T,M},
     reference::AbstractArray{T,N};
     σ_filter = nothing,
-    max_shift = 15,
+    max_shift = N == 2 ? 15 : (15, 15, 5),
     border_σ = 0,
     upsampling = 1,
     upsample_padding = nothing,
@@ -65,9 +65,9 @@ function find_translation(
 
     n_t = size(movings)[end]
     if upsampling != 1
-        shifts = Array{Translation{SVector{N, Float64}}}(undef, n_t)
+        shifts = Array{Translation{SVector{N,Float64}}}(undef, n_t)
     else
-        shifts = Array{Translation{SVector{N, Int64}}}(undef, n_t)
+        shifts = Array{Translation{SVector{N,Int64}}}(undef, n_t)
     end
 
     correlations = Array{Float32}(undef, n_t)
@@ -106,4 +106,12 @@ function find_translation(
         correlations[i_t] = corr
     end
     return shifts, correlations
+end
+
+function find_translation(
+    movings::AbstractArray{TM,M},
+    reference::AbstractArray{T,N};
+    kwargs...,
+) where {TM,T,M,N}
+    return find_translation(T.(movings), reference; kwargs...)
 end

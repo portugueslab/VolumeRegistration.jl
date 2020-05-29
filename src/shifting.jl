@@ -25,9 +25,15 @@ function translate!(translated, a::AbstractArray{T, N}, translation::Translation
     return translated
 end
 
-function translate!(translated, a::AbstractArray{T, N}, translation::Translation{SVector{N, TT}}) where {N, T, TT <: Real}
-    translated .= fft_translate(a, Tuple(translation.translation))
+function translate!(translated, a::AbstractArray{T, N}, translation::Translation{SVector{N, TT}}) where {N, T <: Real, TT <: Real}
+    translated .=  fft_translate(a, Tuple(translation.translation))
 end
+
+
+function translate!(translated, a::AbstractArray{T, N}, translation::Translation{SVector{N, TT}}) where {N, T <: Integer, TT <: Real}
+    translated .=  round.(T, fft_translate(a, Tuple(translation.translation)))
+end
+
 
 # preallocation functions: allocates an union for missing
 function preallocate(::Type{T}, ::Missing, dimensions) where {T}

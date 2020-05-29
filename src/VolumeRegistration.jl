@@ -20,6 +20,6 @@ include("translation.jl")
 include("nonrigid.jl")
 include("shifting.jl")
 
-export find_translation, translate, find_reference, find_deformation_map, refine_reference
+export make_reference, find_translation, translate, find_deformation_map
 
 end
