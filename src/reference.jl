@@ -3,8 +3,9 @@ function initial_reference(
     time_range = Colon(),
     corr_win = (30, 30, 3),
     n_take_mean = 20,
-)
-    ds_mid = size(ds)[1:3] .÷ 2
+)   
+    N = ndims(ds) - 1
+    ds_mid = size(ds)[1:N] .÷ 2
     ds_timeseries =
         ds[((s:e) for (s, e) in zip(ds_mid .- corr_win, ds_mid .+ corr_win))..., time_range]
     ds_timeseries = Float32.(reshape(ds_timeseries, :, size(ds_timeseries)[end]))
@@ -21,12 +22,13 @@ function initial_reference(
     reference_indices = most_correlated[1:n_take_mean]
 
     # mean
-    mn = zeros(Float32, size(ds)[1:3])
+    mn = zeros(Float32, size(ds)[1:N])
     for i_fr in reference_indices
-        mn .+= ds[:, :, :, i_fr]
+        mn .+= ds[(Colon() for _ in 1:N)..., i_fr]
     end
 
-    return (stack = mn ./ n_take_mean, indices = reference_indices .+ first(time_range))
+    t0 = time_range == Colon() ? 0 : first(time_range) - 1
+    return (stack = mn ./ n_take_mean, indices = reference_indices .+ t0)
 end
 
 """
@@ -48,10 +50,10 @@ function refine_reference(
         foreach(
             translate!,
             eachslice(average_stack, dims = N + 1),
-            eachslice(frames[:, :, :, best_corr_order], dims = N + 1),
+            eachslice(frames[(Colon() for _ in 1:N)..., best_corr_order], dims = N + 1),
             translations[best_corr_order],
         )
-        reference = mean(average_stack, dims = N + 1)[:, :, :, 1]
+        reference = mean(average_stack, dims = N + 1)[(Colon() for _ in 1:N)..., 1]
     end
     return reference
 end
@@ -70,7 +72,7 @@ function make_reference(
     stack;
     time_range = Colon(),
     corr_win = (30, 30, 3),
-    n_refine_from = 400,
+    n_refine_from = 200,
     n_average = 20,
     n_average_refine = 50,
     n_iterations = 3,
@@ -92,9 +94,9 @@ function make_reference(
             ref_init_stack,
             stack[
                 (Colon() for _ in 1:N)...,
-                reference_mid-n_refine_from÷2+1:reference_mid+n_refine_from÷2,
+                max(reference_mid-n_refine_from÷2+1,1):min(reference_mid+n_refine_from÷2, size(stack, N+1)),
             ],
-            n_average = n_average_refine,
+            n_average = min(n_average_refine, size(stack, N+1)),
             n_iterations = n_iterations,
         )
     else
