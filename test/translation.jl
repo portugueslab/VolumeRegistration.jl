@@ -3,8 +3,8 @@ const registration_image_error_tolerance = 0.05
 @testset "Translation-only registration" begin
     imsize = 128
     values = range(-5f0, stop = 5f0, length = imsize)
-    dim_shifts = (-1, 2.9, 3.2)
-    n_images = 5
+    dim_shifts = (-3.2, 2.9, 1.2)
+    n_images = 4
 
     upsampling_paramters = [(upsampling = 10,), (upsampling = 5, upsample_padding = 3)]
 
@@ -61,11 +61,14 @@ const registration_image_error_tolerance = 0.05
 
         # test image sequence
         tr = find_translation(moving, reference)[1]
+        difs = [Tuple(t.translation) .== .- round.(h) for (h, t) in zip(current_shift, tr)]
         @test all((
-            all(Tuple(t.translation) .== .-round.(h)) for (h, t) in zip(current_shift, tr)
+            all(Tuple(t.translation) .== .- round.(h)) for (h, t) in zip(current_shift, tr)
         ))
 
         tr = find_translation(moving, reference; ups_params...)[1]
+        dif = [abs.(h .+ Tuple(t.translation))
+                    for (h, t) in zip(current_shift, tr)]
         @test all((
             all(abs.(h .+ Tuple(t.translation)) .< 0.3)
             for (h, t) in zip(current_shift, tr)

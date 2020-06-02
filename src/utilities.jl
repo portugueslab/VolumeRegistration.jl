@@ -20,10 +20,3 @@ end
 function nones(::Val{N}) where {N}
     return ntuple(x->1, Val{N}())
 end
-
-function make_test_image(dimensions; σ_filt = 0.9f0, σ_border = 10f0)
-    im = rand(Float32, dimensions)
-    im_filtered = real.(ifft(fft(im) .* gaussian_fft_filter(dimensions, σ_filt)))
-    mask = gaussian_border_mask(dimensions, σ_border)
-    return im_filtered .* mask
-end
