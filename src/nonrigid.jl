@@ -160,7 +160,7 @@ end
 function calc_block_offsets(
     moving::AbstractArray{T,N},
     pc::PrecompuationDeformationMap;
-    snr_n_interpolations = 2,
+    snr_n_smooths = 2,
     snr_threshold = 1.15f0,
     snr_n_pad = N == 2 ? (3, 3) : (3, 3, 1),
 ) where {T,N}
@@ -186,7 +186,7 @@ function calc_block_offsets(
     blurred_correlations = [block_correlations]
     selected_correlations = deepcopy(block_correlations)
 
-    for i in 1:snr_n_interpolations
+    for i in 1:snr_n_smooths
         push!(
             blurred_correlations,
             [
@@ -200,7 +200,7 @@ function calc_block_offsets(
     for i_block in 1:length(selected_correlations)
         i_blur = 0
         snr_current = 1f0
-        while snr_current < snr_threshold && i_blur < snr_n_interpolations
+        while snr_current < snr_threshold && i_blur < snr_n_smooths
             snr_current = calc_snr(blurred_correlations[i_blur+1][i_block], snr_n_pad)
             i_blur += 1
         end
@@ -219,22 +219,38 @@ end
 Find deformation maps by splitting the dataset in blocks
 and aligning blocks with subpixel precision
 
+# Arguments
+
+- `moving`: the stack to be registered
+- `reference`: the stack to be registered to
+- `border_σ`: how far to fade out the borders of the whole image/volume
+- `block_size::NTuple{N, Integer}: size of blocks to compute deformations
+- `block_border_σ::Union{Real, NTuple{N, Real}}`: how far to fade out the
+- `max_shift::Union{Real, NTuple{N, Integer}}`: maximum displacement of a
+a block in each dimension
+- `σ_filter`: low-pass filter width
+- `upsampling`: upsampling of the registration for subpixel alignment
+- `upsample_padding`: how far to pad from the local maximum for upsampling
+- `snr_n_smooths::Integer=2`: number 
+of times the correlation matrices are smoothed by wieghting with adjacent ones (if they are under signal-to-noise ratio)
+- `snr_threshold::Real`: the threshold of the "peakiness" of the correlation matrix, if it's smaller than that, it's value is 
+obtained by smoothing neighbors
+- `snr_n_pad::Integer`: window size of the signal-to-noise calculation
 """
 function find_deformation_map(
     moving::AbstractArray{T,N},
     reference::AbstractArray{T,N};
-    snr_n_interpolations = 2,
+    snr_n_smooths = 2,
     snr_threshold = 1.15f0,
     snr_n_pad = N == 2 ? (3, 3) : (3, 3, 1),
     kwargs...,
 ) where {T,N}
-    # TODO sort out this horribleness
-    pc = prepare_deformation_map_calc(reference; kwargs...)
+    pc = prepare_deformation_map_calc(reference; kwargs...)    
     return (
         shifts = calc_block_offsets(
             moving,
             pc;
-            snr_n_interpolations = snr_n_interpolations,
+            snr_n_smooths = snr_n_smooths,
             snr_threshold = snr_threshold,
             snr_n_pad = snr_n_pad,
         ),
@@ -243,30 +259,25 @@ function find_deformation_map(
 end
 
 # variant to align stack
-"""
-Find deformation maps by splitting the dataset in blocks
-and aligning blocks with subpixel precision
-
-"""
 function find_deformation_map(
     moving::AbstractArray{T,M},
     reference::AbstractArray{T,N};
-    snr_n_interpolations = 2,
+    snr_n_smooths = 2,
     snr_threshold = 1.15f0,
     snr_n_pad = N == 2 ? (3, 3) : (3, 3, 1),
     kwargs...,
 ) where {T,N,M}
-    # TODO sort out this horribleness
     pc = prepare_deformation_map_calc(reference; kwargs...)
+
     return (
         shifts = [
             calc_block_offsets(
-                moving,
+                mov,
                 pc;
-                snr_n_interpolations = snr_n_interpolations,
+                snr_n_smooths = snr_n_smooths,
                 snr_threshold = snr_threshold,
                 snr_n_pad = snr_n_pad,
-            ) for moving in eachslice(moving, dims = M)
+            ) for mov in eachslice(moving, dims = M)
         ],
         blocks = pc.blocks,
     )
