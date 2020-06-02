@@ -1,3 +1,10 @@
+function sparsify(a, sparse_threshold = 1e-3)
+    a[a.<sparse_threshold] .= 0
+    sp = sparse(a)
+    dropzeros!(sp)
+    return sp
+end
+
 function block_distance_kernel(b::Blocks)
     distances = [
         exp(-sum((idx_a.I .- idx_b.I) .^ 2))
@@ -7,7 +14,7 @@ function block_distance_kernel(b::Blocks)
             CartesianIndices(b.blocks_per_dim)[:],
         )
     ]
-    return distances ./ sum(distances, dims = 2)
+    return sparsify(permutedims(distances ./ sum(distances, dims = 2)))
 end
 
 """
@@ -84,36 +91,35 @@ function shifts_to_extrapolation(
         ((0:nb-1) * (bs) .+ (bs + pd) / 2)
         for (nb, bs, pd) in zip(blks.blocks_per_dim, blks.block_size, blks.padding)
     )
-    shifts_dim = [
-        LinearInterpolation(
-            axes_interp,
-            getindex.(shifts, i_dim),
-            extrapolation_bc = Line(),
-        ) for i_dim in 1:N
-    ]
 
-    return sv ->
-        SVector(Tuple(
-            shifts_dim[i_dim]((sv[i_dim] for i_dim in 1:N)...) for i_dim in 1:N
-        )) .+ sv
+    shifts_dim =
+        LinearInterpolation(axes_interp, SVector.(shifts), extrapolation_bc = Line())
+
+    return shifts_dim
+end
+
+struct PrecompuationDeformationMap
+    blocks::Any
+    blockwise_reference::Any
+    blocked_masks::Any
+    blocked_offsets::Any
+    block_fft_plan::Any
+    upsampler::Any
+    window_size::Any
+    block_correlation_blur::Any
 end
 
 """
-Find deformation maps by splitting the dataset in blocks
-and aligning blocks with subpixel precision
+Prepare everything common for calculating deformation maps
 
 """
-function find_deformation_map(
-    moving::AbstractArray{T,N},
+function prepare_deformation_map_calc(
     reference::AbstractArray{T,N};
     block_size = N == 2 ? (128, 128) : (128, 128, 5),
     block_border_σ = 1f0,
     max_shift = 3,
     border_σ = nothing,
     σ_filter = nothing,
-    snr_n_interpolations = 2,
-    snr_threshold = 1.15f0,
-    snr_n_pad = N == 2 ? (3, 3) : (3, 3, 1),
     upsampling = N == 2 ? (10, 10) : (8, 8, 4),
     upsample_padding = N == 2 ? (3, 3) : (3, 3, 2),
 ) where {T,N}
@@ -136,32 +142,60 @@ function find_deformation_map(
     block_fft_plan = plan_fft(blockwise_reference[1])
     us = KrigingUpsampler(upsampling = upsampling, padding = upsample_padding)
 
-    blockwise_moving = Slices(split_into_blocks(moving, blocks), (1:N)...)
-
     window_size = to_ntuple(Val{N}(), max_shift) .* 2 .+ 1
+
+    block_correlation_blur = block_distance_kernel(blocks)
+    return PrecompuationDeformationMap(
+        blocks,
+        blockwise_reference,
+        blocked_masks,
+        blocked_offsets,
+        block_fft_plan,
+        us,
+        window_size,
+        block_correlation_blur,
+    )
+end
+
+function calc_block_offsets(
+    moving::AbstractArray{T,N},
+    pc::PrecompuationDeformationMap;
+    snr_n_interpolations = 2,
+    snr_threshold = 1.15f0,
+    snr_n_pad = N == 2 ? (3, 3) : (3, 3, 1),
+) where {T,N}
+
+    blockwise_moving = Slices(split_into_blocks(moving, pc.blocks), (1:N)...)
 
     # phase correlations and signal to noise ratios
     block_correlations =
         extract_low_frequencies.(
             phase_correlation.(
-                Ref(block_fft_plan) .*
+                Ref(pc.block_fft_plan) .*
                 apply_mask.(
                     blockwise_moving,
-                    Slices(blocked_masks, (1:N)...),
-                    Slices(blocked_offsets, (1:N)...),
+                    Slices(pc.blocked_masks, (1:N)...),
+                    Slices(pc.blocked_offsets, (1:N)...),
                 ),
-                blockwise_reference,
+                pc.blockwise_reference,
             ),
-            Ref(window_size),
+            Ref(pc.window_size),
         )
-
-    block_correlation_blur = block_distance_kernel(blocks)
 
     # blur phase correlations weighted by SNR
     blurred_correlations = [block_correlations]
     selected_correlations = deepcopy(block_correlations)
+
     for i in 1:snr_n_interpolations
-        push!(blurred_correlations, block_correlation_blur * blurred_correlations[end])
+        push!(
+            blurred_correlations,
+            [
+                sum(
+                    blurred_correlations[end][i] * weight
+                    for (i, weight) in zip(findnz(pc.block_correlation_blur[:, i_vec])...)
+                ) for i_vec in 1:length(blurred_correlations[end])
+            ],
+        )
     end
     for i_block in 1:length(selected_correlations)
         i_blur = 0
@@ -175,11 +209,65 @@ function find_deformation_map(
         end
     end
 
+    return reshape(
+        getindex.(shift_around_maximum.(Ref(pc.upsampler), selected_correlations), 1),
+        pc.blocks.blocks_per_dim...,
+    )
+end
+
+"""
+Find deformation maps by splitting the dataset in blocks
+and aligning blocks with subpixel precision
+
+"""
+function find_deformation_map(
+    moving::AbstractArray{T,N},
+    reference::AbstractArray{T,N};
+    snr_n_interpolations = 2,
+    snr_threshold = 1.15f0,
+    snr_n_pad = N == 2 ? (3, 3) : (3, 3, 1),
+    kwargs...,
+) where {T,N}
+    # TODO sort out this horribleness
+    pc = prepare_deformation_map_calc(reference; kwargs...)
     return (
-        reshape(
-            getindex.(shift_around_maximum.(Ref(us), selected_correlations), 1),
-            blocks.blocks_per_dim...,
+        shifts = calc_block_offsets(
+            moving,
+            pc;
+            snr_n_interpolations = snr_n_interpolations,
+            snr_threshold = snr_threshold,
+            snr_n_pad = snr_n_pad,
         ),
-        blocks,
+        blocks = pc.blocks,
+    )
+end
+
+# variant to align stack
+"""
+Find deformation maps by splitting the dataset in blocks
+and aligning blocks with subpixel precision
+
+"""
+function find_deformation_map(
+    moving::AbstractArray{T,M},
+    reference::AbstractArray{T,N};
+    snr_n_interpolations = 2,
+    snr_threshold = 1.15f0,
+    snr_n_pad = N == 2 ? (3, 3) : (3, 3, 1),
+    kwargs...,
+) where {T,N,M}
+    # TODO sort out this horribleness
+    pc = prepare_deformation_map_calc(reference; kwargs...)
+    return (
+        shifts = [
+            calc_block_offsets(
+                moving,
+                pc;
+                snr_n_interpolations = snr_n_interpolations,
+                snr_threshold = snr_threshold,
+                snr_n_pad = snr_n_pad,
+            ) for moving in eachslice(moving, dims = M)
+        ],
+        blocks = pc.blocks,
     )
 end
