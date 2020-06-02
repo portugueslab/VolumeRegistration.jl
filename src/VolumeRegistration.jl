@@ -9,6 +9,7 @@ using CoordinateTransformations
 using LinearAlgebra
 using StaticArrays
 using Statistics
+using SparseArrays
 using PaddedBlocks
 
 include("utilities.jl")
@@ -18,7 +19,7 @@ include("reference.jl")
 include("phase_correlation.jl")
 include("translation.jl")
 include("nonrigid.jl")
-include("shifting.jl")
+include("transformation.jl")
 
 export make_reference, find_translation, translate, find_deformation_map
 
