@@ -224,17 +224,14 @@ and aligning blocks with subpixel precision
 - `moving`: the stack to be registered
 - `reference`: the stack to be registered to
 - `border_σ`: how far to fade out the borders of the whole image/volume
-- `block_size::NTuple{N, Integer}: size of blocks to compute deformations
+- `block_size::NTuple{N, Integer}`: size of blocks to compute deformations
 - `block_border_σ::Union{Real, NTuple{N, Real}}`: how far to fade out the
-- `max_shift::Union{Real, NTuple{N, Integer}}`: maximum displacement of a
-a block in each dimension
+- `max_shift::Union{Real, NTuple{N, Integer}}`: maximum displacement of a block in each dimension
 - `σ_filter`: low-pass filter width
 - `upsampling`: upsampling of the registration for subpixel alignment
 - `upsample_padding`: how far to pad from the local maximum for upsampling
-- `snr_n_smooths::Integer=2`: number 
-of times the correlation matrices are smoothed by wieghting with adjacent ones (if they are under signal-to-noise ratio)
-- `snr_threshold::Real`: the threshold of the "peakiness" of the correlation matrix, if it's smaller than that, it's value is 
-obtained by smoothing neighbors
+- `snr_n_smooths::Integer=2`: number of times the correlation matrices are smoothed by wieghting with adjacent ones (if they are under signal-to-noise ratio)
+- `snr_threshold::Real`: the threshold of the "peakiness" of the correlation matrix, if it's smaller than that, it's value is obtained by smoothing neighbors
 - `snr_n_pad::Integer`: window size of the signal-to-noise calculation
 """
 function find_deformation_map(
