@@ -106,7 +106,7 @@ end
 Corrects a plane or volume with a transformation found through non-rigid registration
 
 """
-function warp_nonrigid(
+function apply_deformation_map(
     moving::AbstractArray{T,N},
     shifts::AbstractArray{NTuple{N,TS},N},
     blocks,
@@ -132,7 +132,7 @@ end
 Corrects a sequence of imaging stacks with a transformation found through non-rigid registration
 
 """
-function warp_nonrigid(
+function apply_deformation_map(
     moving::AbstractArray{T,M},
     shifts::Array{Array{NTuple{N,TS},N}},
     blocks,

@@ -8,6 +8,12 @@
 
 Calcium imaging registration pipeline, a rewrite of the [Suite2p](https://github.com/MouseLand/suite2p) approach in Julia.
 
+## Exported functions
+
+- reference creation: `make_reference`
+- translation-only registration: `find_translation` and `translate`
+- non-rigid piecewise-translation registration: `find_deformation_map` and `apply_deformation_map`
+
 ## Usage
 
 ```julia

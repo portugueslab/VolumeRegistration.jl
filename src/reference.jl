@@ -65,7 +65,13 @@ Make a reference for a stack
 
 # Arguments
 - `stack`: the data to be aligned, time is assumed to be the list dimension
-- `ref_win`
+- `time_range::AbstractUnitRange=Colon()`: the range of time to take the reference from
+- `corr_win`: size of the window around the middle of the stack to calculate the optimal reference
+- `n_refine_from`: how many frames to make the refined reference from
+- `n_average`: number of frames to average for a nice reference
+- `n_iterations`: how many times to recalculate the reference from the best correlated moved frames
+
+more keyword arguments for (@ref find_translation) can be supplied
 
 """
 function make_reference(

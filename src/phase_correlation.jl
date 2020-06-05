@@ -88,16 +88,16 @@ function extract_low_frequencies(data::AbstractArray{Complex{T}, N}, corner_size
     return corner
 end
 
-function phase_correlation_shift(pc, window_size)
+function phase_correlation_shift(pc, window_size; interpolate_middle=false)
     window_mid  = window_size .÷ 2 .+ 1
-    lf = extract_low_frequencies(pc, window_size)
+    lf = extract_low_frequencies(pc, window_size, interpolate_middle)
     max_loc = argmax(lf)
     return max_loc.I .- window_mid, lf[max_loc]
 end
 
-function phase_correlation_shift(pc, window_size, us)
+function phase_correlation_shift(pc, window_size, us; interpolate_middle=false)
     window_size = min.(size(pc), window_size)
-    lf = VolumeRegistration.extract_low_frequencies(pc, window_size)
+    lf = extract_low_frequencies(pc, window_size, interpolate_middle)
     return shift_around_maximum(us, lf)
 end
 
@@ -105,6 +105,6 @@ function shift_around_maximum(us, lf)
     window_mid = size(lf) .÷ 2 .+ 1
     os_mid = us.original_size .÷ 2
     max_loc = argmax(lf[CartesianIndex(os_mid .+ 1):CartesianIndex(size(lf) .- os_mid)]).I .+ os_mid
-    ups_shift = VolumeRegistration.upsampled_shift(us, lf[CartesianIndex(max_loc .- os_mid) : CartesianIndex(max_loc .+ os_mid)])
+    ups_shift = upsampled_shift(us, lf[CartesianIndex(max_loc .- os_mid) : CartesianIndex(max_loc .+ os_mid)])
     return ups_shift .+ max_loc .- window_mid, lf[max_loc...]
 end

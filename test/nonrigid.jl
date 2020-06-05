@@ -13,7 +13,7 @@ using Rotations
 
         shifts, blocks = find_deformation_map(rotated, test_img, block_size=blocksize)
 
-        unrotated = warp_nonrigid(rotated, shifts, blocks)
+        unrotated = apply_deformation_map(rotated, shifts, blocks)
 
         im_mid = imsize .÷ 2
         bshalf = blocksize .÷ 2

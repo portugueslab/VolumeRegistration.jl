@@ -1,9 +1,15 @@
 """
+
+    $(SIGNATURES)
+
 Find the shift to move `moving` by to align with `reference`
 
 # Arguments
+- `max_shift::Union{Integer, Tuple}`: the maximal shift in each dimension 
 - `border_σ`: the width of the border kernel for a smooth faloff towards the edges
-- `upsampling::Integer=1`: If bigger than 1, how much to upsample the shifts by (for subpixel registration)
+- `upsampling::Union{Integer, Tuple}=1`: If bigger than 1, how much to upsample the shifts by (for subpixel registration)
+- `upsample_padding::Union{Integer, Tuple}=nothing` how much ± pixels to take around maximum to upsample
+- `interpolate_middle::Bool`: whether to interpolate the middle correlation pixel (to avoid static camera noise)
 """
 function find_translation(
     moving::AbstractArray{T,N},
@@ -13,7 +19,8 @@ function find_translation(
     border_σ = 0,
     upsampling = 1,
     upsample_padding = nothing,
-) where {N,T,TM}
+    interpolate_middle = false,
+) where {N,T}
     if border_σ != 0
         mask = gaussian_border_mask(size(reference), border_σ)
         reference_mask_offset = mask_offset(reference, mask)
@@ -52,6 +59,7 @@ function find_translation(
     border_σ = 0,
     upsampling = 1,
     upsample_padding = nothing,
+    interpolate_middle = false,
 ) where {N,M,T}
     if border_σ != 0
         mask = gaussian_border_mask(size(reference), border_σ)
@@ -98,9 +106,9 @@ function find_translation(
         end
 
         if upsampling !== 1
-            shift, corr = phase_correlation_shift(moving_corr, window_size, us)
+            shift, corr = phase_correlation_shift(moving_corr, window_size, us, interpolate_middle=interpolate_middle)
         else
-            shift, corr = phase_correlation_shift(moving_corr, window_size)
+            shift, corr = phase_correlation_shift(moving_corr, window_size, interpolate_middle=interpolate_middle)
         end
         shifts[i_t] = Translation(shift)
         correlations[i_t] = corr
