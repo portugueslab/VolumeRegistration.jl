@@ -46,24 +46,31 @@ end
 
 function upsample(u::KrigingUpsampler{N,AT}, v::AbstractArray{T,M}) where {T,N,AT,M}
     n_els = size(v)[N+1]
-    return reshape(permutedims(reshape(v, :, n_els)) * u.upsampling_mat, n_els, u.upsampled_size...)
+    return reshape(
+        permutedims(reshape(v, :, n_els)) * u.upsampling_mat,
+        n_els,
+        u.upsampled_size...,
+    )
 end
 
 """
 Finds the shift in the area around the center of the orignial window with 
 upsampling
 """
-function upsampled_shift(u::KrigingUpsampler{N,AT},  v::AbstractArray{T,N}) where {T,N,AT}
+function upsampled_shift(u::KrigingUpsampler{N,AT}, v::AbstractArray{T,N}) where {T,N,AT}
     upsampled_indices = CartesianIndices(u.upsampled_size)
     max_val, max_ind = findmax(permutedims(v[:]) * u.upsampling_mat)
     half_ups_size = u.upsampled_size .÷ 2 .+ 1
     return (upsampled_indices[max_ind[2]].I .- half_ups_size) ./ u.upsampling
 end
 
-function upsampled_shift(u::KrigingUpsampler{N,AT},  v::AbstractArray{T,M}) where {T,N,AT,M}
+function upsampled_shift(u::KrigingUpsampler{N,AT}, v::AbstractArray{T,M}) where {T,N,AT,M}
     n_els = size(v)[N+1]
     upsampled_indices = CartesianIndices(u.upsampled_size)
-    max_vals, max_inds = findmax(permutedims(reshape(v, :, n_els)) * u.upsampling_mat, dims=2)
+    max_vals, max_inds =
+        findmax(permutedims(reshape(v, :, n_els)) * u.upsampling_mat, dims = 2)
     half_ups_size = u.upsampled_size .÷ 2 .+ 1
-    return [(upsampled_indices[mi.I[2]].I .- half_ups_size) ./ u.upsampling for mi in max_inds]
+    return [
+        (upsampled_indices[mi.I[2]].I .- half_ups_size) ./ u.upsampling for mi in max_inds
+    ]
 end

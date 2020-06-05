@@ -1,13 +1,3 @@
-function aamax(x::Array)
-    return argmax(x)
-end
-
-function aamax(x)
-    i_m = argmax(x)
-    indices = CartesianIndices(size(x))
-    return indices[i_m]
-end
-
 function normalize(x::Complex{T}) where {T}
     return x / (abs(x) + eps(T))
 end
@@ -80,8 +70,8 @@ function extract_low_frequencies(data::AbstractArray{Complex{T}, N}, corner_size
     # if interpolating the middle, average the values in the cross-shaped area around it
     if interpolate_middle
         corner[(mid_val .+ 1)...] = mean(
-            corner[(mid_val .+ 1 .+ ntuple(i->i_dim == i ? 1 : 0, Val{N}))] +
-            corner[(mid_val .+ 1 .+ ntuple(i->i_dim == i ? -1 : 0, Val{N}))]
+            corner[(mid_val .+ 1 .+ ntuple(i->i_dim == i ? 1 : 0, Val{N}()))...] +
+            corner[(mid_val .+ 1 .+ ntuple(i->i_dim == i ? -1 : 0, Val{N}()))...]
             for i_dim in 1:N) / 2
     end
 

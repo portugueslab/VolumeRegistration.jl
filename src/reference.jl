@@ -3,7 +3,7 @@ function initial_reference(
     time_range = Colon(),
     corr_win = (30, 30, 3),
     n_take_mean = 20,
-)   
+)
     N = ndims(ds) - 1
     ds_mid = size(ds)[1:N] .÷ 2
     ds_timeseries =
@@ -41,11 +41,12 @@ function refine_reference(
     frames;
     n_average = min(size(frames)[end], 100),
     n_iterations = 3,
-    translation_kwargs...
+    translation_kwargs...,
 ) where {T,N}
     average_stack = zeros(Float32, (size(reference)..., n_average))
     for i_iteration in 1:n_iterations
-        translations, correlations = find_translation(frames, reference, translation_kwargs...)
+        translations, correlations =
+            find_translation(frames, reference, translation_kwargs...)
         best_corr_order = sortperm(correlations, rev = true)[1:n_average]
         foreach(
             translate!,
@@ -82,7 +83,7 @@ function make_reference(
     n_average = 20,
     n_average_refine = 50,
     n_iterations = 3,
-    translation_kwargs...
+    translation_kwargs...,
 )
     N = ndims(stack) - 1
     ref_init_stack, ref_init_frames = initial_reference(
@@ -92,17 +93,21 @@ function make_reference(
         n_take_mean = n_average,
     )
     reference_mid = round(Int, median(ref_init_frames))
-    reference_mid =
-        min(max(reference_mid, n_refine_from ÷ 2), size(stack, N + 1) - n_refine_from ÷ 2)
+    reference_mid = min(
+        max(reference_mid, n_refine_from ÷ 2),
+        size(stack, N + 1) - n_refine_from ÷ 2 - 1,
+    )
+    stack_range =
+        max(
+            reference_mid - n_refine_from ÷ 2 + 1,
+            1,
+        ):min(reference_mid + n_refine_from ÷ 2, size(stack, N + 1))
 
-    if n_iterations > 0
+    return if n_iterations > 0
         return refine_reference(
             ref_init_stack,
-            stack[
-                (Colon() for _ in 1:N)...,
-                max(reference_mid-n_refine_from÷2+1,1):min(reference_mid+n_refine_from÷2, size(stack, N+1)),
-            ],
-            n_average = min(n_average_refine, size(stack, N+1)),
+            stack[(Colon() for _ in 1:N)..., stack_range],
+            n_average = min(n_average_refine, length(stack_range)),
             n_iterations = n_iterations,
         )
     else

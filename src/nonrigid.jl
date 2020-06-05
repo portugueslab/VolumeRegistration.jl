@@ -242,7 +242,7 @@ function find_deformation_map(
     snr_n_pad = N == 2 ? (3, 3) : (3, 3, 1),
     kwargs...,
 ) where {T,N}
-    pc = prepare_deformation_map_calc(reference; kwargs...)    
+    pc = prepare_deformation_map_calc(reference; kwargs...)
     return (
         shifts = calc_block_offsets(
             moving,

@@ -21,6 +21,7 @@ include("translation.jl")
 include("nonrigid.jl")
 include("transformation.jl")
 
-export make_reference, find_translation, translate, find_deformation_map, apply_deformation_map
+export make_reference,
+    find_translation, translate, find_deformation_map, apply_deformation_map
 
 end

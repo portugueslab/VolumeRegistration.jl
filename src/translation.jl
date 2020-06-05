@@ -1,16 +1,4 @@
-"""
 
-    $(SIGNATURES)
-
-Find the shift to move `moving` by to align with `reference`
-
-# Arguments
-- `max_shift::Union{Integer, Tuple}`: the maximal shift in each dimension 
-- `border_σ`: the width of the border kernel for a smooth faloff towards the edges
-- `upsampling::Union{Integer, Tuple}=1`: If bigger than 1, how much to upsample the shifts by (for subpixel registration)
-- `upsample_padding::Union{Integer, Tuple}=nothing` how much ± pixels to take around maximum to upsample
-- `interpolate_middle::Bool`: whether to interpolate the middle correlation pixel (to avoid static camera noise)
-"""
 function find_translation(
     moving::AbstractArray{T,N},
     reference::AbstractArray{T,N};
@@ -42,15 +30,36 @@ function find_translation(
             upsample_padding = to_ntuple(Val{N}(), upsample_padding)
         end
         us = KrigingUpsampler(upsampling = upsampling, padding = upsample_padding)
-        shift, corr = phase_correlation_shift(moving_corr, window_size, us)
+        shift, corr = phase_correlation_shift(
+            moving_corr,
+            window_size,
+            us,
+            interpolate_middle = interpolate_middle,
+        )
     else
-        shift, corr = phase_correlation_shift(moving_corr, window_size)
+        shift, corr = phase_correlation_shift(
+            moving_corr,
+            window_size,
+            interpolate_middle = interpolate_middle,
+        )
     end
     return Translation(shift), corr
 end
 
-# method for aligning a time-series with the same reference
-# the steps are identical as above, apart from some optimizations
+
+"""
+
+    $(SIGNATURES)
+
+Find the shift to move `moving` by to align with `reference`
+
+# Arguments
+- `max_shift::Union{Integer, Tuple}`: the maximal shift in each dimension 
+- `border_σ`: the width of the border kernel for a smooth faloff towards the edges
+- `upsampling::Union{Integer, Tuple}=1`: If bigger than 1, how much to upsample the shifts by (for subpixel registration)
+- `upsample_padding::Union{Integer, Tuple}=nothing` how much ± pixels to take around maximum to upsample
+- `interpolate_middle::Bool`: whether to interpolate the middle correlation pixel (to avoid static camera noise)
+"""
 function find_translation(
     movings::AbstractArray{T,M},
     reference::AbstractArray{T,N};
@@ -106,9 +115,18 @@ function find_translation(
         end
 
         if upsampling !== 1
-            shift, corr = phase_correlation_shift(moving_corr, window_size, us, interpolate_middle=interpolate_middle)
+            shift, corr = phase_correlation_shift(
+                moving_corr,
+                window_size,
+                us,
+                interpolate_middle = interpolate_middle,
+            )
         else
-            shift, corr = phase_correlation_shift(moving_corr, window_size, interpolate_middle=interpolate_middle)
+            shift, corr = phase_correlation_shift(
+                moving_corr,
+                window_size,
+                interpolate_middle = interpolate_middle,
+            )
         end
         shifts[i_t] = Translation(shift)
         correlations[i_t] = corr
