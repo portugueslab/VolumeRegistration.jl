@@ -45,6 +45,7 @@ function refine_reference(
 ) where {T,N}
     average_stack = zeros(Float32, (size(reference)..., n_average))
     for i_iteration in 1:n_iterations
+        @info("Refining reference at iteration $(i_iteration) of $(n_iterations)")
         translations, correlations =
             find_translation(frames, reference, translation_kwargs...)
         best_corr_order = sortperm(correlations, rev = true)[1:n_average]
@@ -86,6 +87,7 @@ function make_reference(
     translation_kwargs...,
 )
     N = ndims(stack) - 1
+    @info("Finding best inital frame for the reference")
     ref_init_stack, ref_init_frames = initial_reference(
         stack;
         corr_win = corr_win,

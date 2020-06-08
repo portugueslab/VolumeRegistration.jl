@@ -4,6 +4,7 @@ using AbstractFFTs
 using DocStringExtensions
 using FFTW
 using Interpolations
+using Logging
 using JuliennedArrays
 using CoordinateTransformations
 using LinearAlgebra
