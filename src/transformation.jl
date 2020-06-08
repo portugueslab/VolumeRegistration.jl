@@ -95,6 +95,7 @@ function warp_nonrigid!(
     nonmorphed_points,
     morphed_points,
 ) where {T,N}
+    @show size(dest)
     morph = shifts_to_extrapolation(shifts, blocks)
     morphed_points .= morph.(image_points...) .+ nonmorphed_points
     im_interp = extrapolate(interpolate!(moving, BSpline(Linear())), Flat())
@@ -142,15 +143,14 @@ function apply_deformation_map(
     morphed_points = Array{SVector{N,Float32},N}(undef, size(image_points[1]))
     nonmorphed_points = [SVector(idx) for idx in Iterators.product(axes(moving)[1:N]...)]
     moved = similar(moving)
-    foreach(
-        warp_nonrigid!,
+    warp_nonrigid!.(
         eachslice(moved, dims = M),
         eachslice(moving, dims = M),
         shifts,
         Ref(blocks),
         Ref(image_points),
-        Ref(morphed_points),
-    )
+        Ref(nonmorphed_points),
+        Ref(morphed_points))
     return moved
 end
 

@@ -133,7 +133,7 @@ function prepare_deformation_map_calc(
     end
     split_reference = split_into_blocks(reference, blocks)
     blockwise_reference = Slices(split_reference, (1:N)...)
-    prepare_fft_reference!.(blockwise_reference, σ_filter)
+    prepare_fft_reference!.(blockwise_reference, Ref(σ_filter))
 
     blocked_masks, blocked_offsets =
         block_masks_offsets(reference, mask, blocks, block_border_σ)

@@ -16,8 +16,7 @@ function initial_reference(
     mean_corr = mean(corr, dims = 2)
 
     # find the frame the most correlated 
-    max_corr, max_i_frame = findmax(mean_corr[:][1:end])
-    max_i_frame += 1
+    max_corr, max_i_frame = findmax(mean_corr[:])
     most_correlated = sortperm(corr[max_i_frame, :], rev = true)
     reference_indices = most_correlated[1:n_take_mean]
 
