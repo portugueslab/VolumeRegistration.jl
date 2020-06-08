@@ -12,6 +12,7 @@ using StaticArrays
 using Statistics
 using SparseArrays
 using PaddedBlocks
+using ThreadTools
 
 include("utilities.jl")
 include("window.jl")

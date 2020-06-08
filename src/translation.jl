@@ -104,7 +104,7 @@ function find_translation(
 
     moving_slices = Slices(movings, (1:N)...)
 
-    for i_t in 1:n_t
+    Base.Threads.@threads for i_t in 1:n_t
         if border_σ != 0
             moving_corr = phase_correlation(
                 fft_plan * (moving_slices[i_t] .* mask .+ reference_mask_offset),

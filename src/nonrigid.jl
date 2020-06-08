@@ -267,15 +267,15 @@ function find_deformation_map(
     pc = prepare_deformation_map_calc(reference; kwargs...)
 
     return (
-        shifts = [
+        shifts = tmap(mov ->
             calc_block_offsets(
                 mov,
                 pc;
                 snr_n_smooths = snr_n_smooths,
                 snr_threshold = snr_threshold,
                 snr_n_pad = snr_n_pad,
-            ) for mov in eachslice(moving, dims = M)
-        ],
+            ), eachslice(moving, dims = M)
+        ),
         blocks = pc.blocks,
     )
 end

@@ -17,6 +17,7 @@ function initial_reference(
 
     # find the frame the most correlated 
     max_corr, max_i_frame = findmax(mean_corr[:])
+    @info "The best reference is at $(max_i_frame)"
     most_correlated = sortperm(corr[max_i_frame, :], rev = true)
     reference_indices = most_correlated[1:n_take_mean]
 
