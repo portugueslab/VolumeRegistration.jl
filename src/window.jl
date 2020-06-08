@@ -17,16 +17,3 @@ end
 function mask_offset(image, mask)
     return mean(image) .* (1 .- mask)
 end
-
-function spatial_smooth(a::AbstractArray{T,N}, n_smooth::NTuple{N,Integer}) where {T,N}
-    smoothing_array = zeros(T, size(a) .+ (n_smooth .÷ 2))
-    smoothing_array[CartesianIndex(
-        1 .+ n_smooth .÷ 2,
-    ):CartesianIndex(n_smooth .÷ 2 .+ size(a))] .= a
-    return for (i_dim, n_dim_smooth) in enumerate(n_smooth)
-        if n_dim_smooth == 0
-            continue
-        end
-        smoothing_array[]
-    end
-end

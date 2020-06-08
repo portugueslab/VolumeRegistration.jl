@@ -80,7 +80,13 @@ function translate(
     fill_value = zero(T),
 ) where {M,T,TR<:Translation}
     translated = preallocate(T, fill_value, size(a))
-    foreach(translate!, eachslice(translated, dims = M), eachslice(a, dims = M), shifts)
+    Base.Threads.@threads for i_slice in 1:size(a, M)
+        translate!(
+            view(translated,ncolons(Val{M-1}())..., i_slice),
+            view(a,ncolons(Val{M-1}())..., i_slice),
+             shifts[i_slice]
+             )
+    end
     return translated
 end
 
@@ -93,15 +99,14 @@ function warp_nonrigid!(
     blocks,
     image_points,
     nonmorphed_points,
-    morphed_points,
 ) where {T,N}
-    @show size(dest)
     morph = shifts_to_extrapolation(shifts, blocks)
-    morphed_points .= morph.(image_points...) .+ nonmorphed_points
-    im_interp = extrapolate(interpolate!(moving, BSpline(Linear())), Flat())
+    morphed_points = morph.(image_points...) .+ nonmorphed_points
+    im_interp = extrapolate(interpolate(moving, BSpline(Linear())), Flat())
     dest .= T.(im_interp.((getindex.(morphed_points, i) for i in 1:N)...))
     return dest
 end
+
 
 """
 Corrects a plane or volume with a transformation found through non-rigid registration
@@ -114,7 +119,6 @@ function apply_deformation_map(
 ) where {T,N,TS}
     image_points =
         [[idx[i_dim] for idx in Iterators.product(axes(moving)...)] for i_dim in 1:N]
-    morphed_points = Array{SVector{N,Float32},N}(undef, size(image_points[1]))
     nonmorphed_points = [SVector(idx) for idx in Iterators.product(axes(moving)...)]
     moved = similar(moving)
     warp_nonrigid!(
@@ -123,8 +127,7 @@ function apply_deformation_map(
         shifts,
         blocks,
         image_points,
-        nonmorphed_points,
-        morphed_points,
+        nonmorphed_points
     )
     return moved
 end
@@ -143,14 +146,15 @@ function apply_deformation_map(
     morphed_points = Array{SVector{N,Float32},N}(undef, size(image_points[1]))
     nonmorphed_points = [SVector(idx) for idx in Iterators.product(axes(moving)[1:N]...)]
     moved = similar(moving)
-    warp_nonrigid!.(
-        eachslice(moved, dims = M),
-        eachslice(moving, dims = M),
-        shifts,
-        Ref(blocks),
-        Ref(image_points),
-        Ref(nonmorphed_points),
-        Ref(morphed_points))
+    Base.Threads.@threads for i_slice in 1:size(moved, M)
+        warp_nonrigid!(
+            view(moved, ncolons(Val{M-1}())..., i_slice),
+            view(moving, ncolons(Val{M-1}())..., i_slice),
+            shifts[i_slice],
+            blocks,
+            image_points,
+            nonmorphed_points)
+    end
     return moved
 end
 
