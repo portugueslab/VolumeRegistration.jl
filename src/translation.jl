@@ -1,7 +1,7 @@
 """
 Prepare everything common for all translations
 """
-function prepare_translation(reference::AbstractArray{T, N};
+function prepare_find_translation(reference::AbstractArray{T, N};
     σ_filter = nothing,
     max_shift = N == 2 ? 15 : (15, 15, 5),
     border_σ = 0,
@@ -87,7 +87,7 @@ function find_translation(
     kwargs...
 ) where {N,M,T}
    
-    (mask, reference_mask_offset, window_size, us, fft_ref, fft_plan) = prepare_translation(reference; kwargs...)
+    (mask, reference_mask_offset, window_size, us, fft_ref, fft_plan) = prepare_find_translation(reference; kwargs...)
 
     moving_slices = Slices(movings, (1:N)...)
 
@@ -102,7 +102,7 @@ function find_translation(
     correlations = Array{Float32}(undef, n_t)
 
     Base.Threads.@threads for i_t in 1:n_t
-        shifts[i_t], correlations[i_t] = prepared_find_translation(moving_slices[i_t], mask, reference_mask_offset, window_size, us, fft_ref, fft_plan)
+        shifts[i_t], correlations[i_t] = prepared_find_translation(moving_slices[i_t], mask, reference_mask_offset, window_size, us, fft_ref, fft_plan, interpolate_middle)
     end
     return (shifts=shifts, correlations=correlations)
 end
@@ -113,8 +113,8 @@ function find_translation(
     interpolate_middle = false,
     kwargs...
 ) where {N,T}
-    (mask, reference_mask_offset, window_size, us, fft_ref, fft_plan) = prepare_translation(reference; kwargs...)
-    shift, correlation = prepared_find_translation(moving, mask, reference_mask_offset, window_size, us, fft_ref, fft_plan)
+    (mask, reference_mask_offset, window_size, us, fft_ref, fft_plan) = prepare_find_translation(reference; kwargs...)
+    shift, correlation = prepared_find_translation(moving, mask, reference_mask_offset, window_size, us, fft_ref, fft_plan, interpolate_middle)
     return (shift=shift, correlation=correlation)
 end
 

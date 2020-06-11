@@ -113,7 +113,7 @@ end
 Prepare everything common for calculating deformation maps
 
 """
-function prepare_deformation_map_calc(
+function prepare_find_deformation_map(
     reference::AbstractArray{T,N};
     block_size = N == 2 ? (128, 128) : (128, 128, 5),
     block_border_σ = 1f0,
@@ -163,6 +163,7 @@ function calc_block_offsets(
     snr_n_smooths = 2,
     snr_threshold = 1.15f0,
     snr_n_pad = N == 2 ? (3, 3) : (3, 3, 1),
+    interpolate_middle=false,
 ) where {T,N}
 
     blockwise_moving = Slices(split_into_blocks(moving, pc.blocks), (1:N)...)
@@ -180,6 +181,7 @@ function calc_block_offsets(
                 pc.blockwise_reference,
             ),
             Ref(pc.window_size),
+            interpolate_middle
         )
 
     # blur phase correlations weighted by SNR
@@ -240,9 +242,10 @@ function find_deformation_map(
     snr_n_smooths = 2,
     snr_threshold = 1.15f0,
     snr_n_pad = N == 2 ? (3, 3) : (3, 3, 1),
+    interpolate_middle=false,
     kwargs...,
 ) where {T,N}
-    pc = prepare_deformation_map_calc(reference; kwargs...)
+    pc = prepare_find_deformation_map(reference; kwargs...)
     return (
         shifts = calc_block_offsets(
             moving,
@@ -250,6 +253,7 @@ function find_deformation_map(
             snr_n_smooths = snr_n_smooths,
             snr_threshold = snr_threshold,
             snr_n_pad = snr_n_pad,
+            interpolate_middle = interpolate_middle
         ),
         blocks = pc.blocks,
     )
@@ -262,9 +266,10 @@ function find_deformation_map(
     snr_n_smooths = 2,
     snr_threshold = 1.15f0,
     snr_n_pad = N == 2 ? (3, 3) : (3, 3, 1),
+    interpolate_middle=false,
     kwargs...,
 ) where {T,N,M}
-    pc = prepare_deformation_map_calc(reference; kwargs...)
+    pc = prepare_find_deformation_map(reference; kwargs...)
 
     return (
         shifts = tmap(mov ->
@@ -274,6 +279,7 @@ function find_deformation_map(
                 snr_n_smooths = snr_n_smooths,
                 snr_threshold = snr_threshold,
                 snr_n_pad = snr_n_pad,
+                interpolate_middle = interpolate_middle
             ), eachslice(moving, dims = M)
         ),
         blocks = pc.blocks,

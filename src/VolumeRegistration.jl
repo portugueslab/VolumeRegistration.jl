@@ -11,7 +11,9 @@ using LinearAlgebra
 using StaticArrays
 using Statistics
 using SparseArrays
+using Strided
 using PaddedBlocks
+using ProgressMeter
 using ThreadTools
 
 include("utilities.jl")
@@ -22,8 +24,10 @@ include("phase_correlation.jl")
 include("translation.jl")
 include("nonrigid.jl")
 include("transformation.jl")
+include("pipelines.jl")
 
 export make_reference,
-    find_translation, translate, find_deformation_map, apply_deformation_map
+    find_translation, translate, find_deformation_map, apply_deformation_map,
+    register_volumes!
 
 end
