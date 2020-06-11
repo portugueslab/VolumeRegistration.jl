@@ -22,7 +22,7 @@ ThreadTools = "dbf13d8f-d36e-4350-8970-f3a99faba1a8"
 
 [compat]
 AbstractFFTs = "0.5"
-CoordinateTransformations = "0.5"
+CoordinateTransformations = "0.5, 0.6"
 CuArrays = "2.2"
 DocStringExtensions = "0.8"
 FFTW = "1.2"
@@ -31,6 +31,7 @@ Interpolations = "0.12"
 JuliennedArrays = "0.2"
 PaddedBlocks = "0.1"
 StaticArrays = "0.12"
+ThreadTools = "0.2"
 julia = "1"
 
 [extras]
