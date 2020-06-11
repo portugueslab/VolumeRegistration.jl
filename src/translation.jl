@@ -74,6 +74,7 @@ end
 Find the shift to move `moving` by to align with `reference`
 
 # Arguments
+- `σ_filter`: standard deviation of a lowpass filter applied before finding translation
 - `max_shift::Union{Integer, Tuple}`: the maximal shift in each dimension 
 - `border_σ`: the width of the border kernel for a smooth faloff towards the edges
 - `upsampling::Union{Integer, Tuple}=1`: If bigger than 1, how much to upsample the shifts by (for subpixel registration)

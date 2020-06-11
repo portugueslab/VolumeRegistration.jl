@@ -27,7 +27,12 @@ include("transformation.jl")
 include("pipelines.jl")
 
 export make_reference,
-    find_translation, translate, find_deformation_map, apply_deformation_map,
-    register_volumes!
+    find_translation,
+    translate,
+    find_deformation_map,
+    apply_deformation_map,
+    register_volumes!,
+    make_planewise_reference,
+    register_planewise!
 
 end

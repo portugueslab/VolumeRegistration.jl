@@ -1,6 +1,6 @@
 using Rotations
 
-@testset "Pipeline" begin
+@testset "Volume pipeline" begin
     # test multiple images
     imsize, blocksize = ((128, 128, 32), (32, 32, 5))
     n_rotations = 3
@@ -45,4 +45,32 @@ using Rotations
         ))
     end
 
+end
+
+@testset "Planar pipeline" begin
+    image_size = (128, 128)
+    n_planes = 20
+    n_t = 4
+    single_plane_image = round.(UInt16, make_test_image(image_size, σ_border=20f0)*255)
+    moved = zeros(UInt16, size(single_plane_image)..., n_planes);
+    translations = [Translation(-i_plane+10, round(Int,6*sin((i_plane-10)/10))) for i_plane in 1:n_planes]
+    for i_plane in 1:n_planes
+        moved[:,:, i_plane] = translate(single_plane_image, translations[i_plane])
+    end
+    wiggled = zeros(UInt16, size(moved)..., n_t)
+    for i_t in 1:n_t
+        for i_plane in 1:n_planes
+            wiggled[:, :, i_plane, i_t] = translate(moved[:, :, i_plane], Translation(sin((i_t-i_plane)*4π/n_t), cos((i_t+i_plane)*2π/n_t)))
+        end
+    end
+    found_reference = make_planewise_reference(wiggled, n_average=3)
+
+    corrected = similar(wiggled);
+    register_planewise!(corrected, wiggled, found_reference.reference, output_time_first=false);
+
+    idx_mid = image_size .÷ 2
+    win_size=20
+    test_range = CartesianIndex(idx_mid .- win_size):CartesianIndex(idx_mid .+ win_size);
+
+    @test all(corrected[test_range, :, :] .== single_plane_image[test_range, 1, 1])
 end

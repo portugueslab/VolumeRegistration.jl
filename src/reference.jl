@@ -1,7 +1,7 @@
 function initial_reference(
     ds;
     time_range = Colon(),
-    corr_win = (30, 30, 3),
+    corr_win =  ndims(ds) == 4 ? (30, 30, 3) : (60, 60),
     n_take_mean = 20,
 )
     N = ndims(ds) - 1
@@ -79,7 +79,7 @@ more keyword arguments for (@ref find_translation) can be supplied
 function make_reference(
     stack;
     time_range = Colon(),
-    corr_win = (30, 30, 3),
+    corr_win =  ndims(stack) == 4 ? (30, 30, 3) : (60, 60),
     n_refine_from = 200,
     n_average = 20,
     n_average_refine = 50,

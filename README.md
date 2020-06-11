@@ -20,6 +20,7 @@ To align individual or small stacks
 
 To align large datasets that do not fit in memory:
 - for volumetric data (e.g. lightsheet) `register_volumes!`
+- for planar data (e.g. two-photon) `make_planar_reference` and `register_planewise!`
 
 ## Usage
 
