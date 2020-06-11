@@ -98,11 +98,12 @@ function warp_nonrigid!(
     shifts,
     blocks,
     image_points,
-    nonmorphed_points,
+    nonmorphed_points;
+    spline_type = Linear()
 ) where {T,N}
     morph = shifts_to_extrapolation(shifts, blocks)
     morphed_points = morph.(image_points...) .+ nonmorphed_points
-    im_interp = extrapolate(interpolate(moving, BSpline(Linear())), Flat())
+    im_interp = extrapolate(interpolate(moving, BSpline(spline_type)), Flat())
     dest .= T.(im_interp.((getindex.(morphed_points, i) for i in 1:N)...))
     return dest
 end
@@ -115,7 +116,8 @@ Corrects a plane or volume with a transformation found through non-rigid registr
 function apply_deformation_map(
     moving::AbstractArray{T,N},
     shifts::AbstractArray{NTuple{N,TS},N},
-    blocks,
+    blocks;
+    spline_type=Linear()
 ) where {T,N,TS}
     image_points =
         [[idx[i_dim] for idx in Iterators.product(axes(moving)...)] for i_dim in 1:N]
@@ -127,19 +129,25 @@ function apply_deformation_map(
         shifts,
         blocks,
         image_points,
-        nonmorphed_points
+        nonmorphed_points,
+        spline_type=spline_type
     )
     return moved
 end
 
 """
+    $(SIGNATURES)
+
 Corrects a sequence of imaging stacks with a transformation found through non-rigid registration
+
+optionally, specify the `spline_type` for interpolations between found shifts other than linear
 
 """
 function apply_deformation_map(
     moving::AbstractArray{T,M},
     shifts::Array{Array{NTuple{N,TS},N}},
-    blocks,
+    blocks;
+    spline_type=Linear()
 ) where {T,N,TS,M}
     image_points =
         [[idx[i_dim] for idx in Iterators.product(axes(moving)[1:N]...)] for i_dim in 1:N]
@@ -153,7 +161,8 @@ function apply_deformation_map(
             shifts[i_slice],
             blocks,
             image_points,
-            nonmorphed_points)
+            nonmorphed_points,
+            spline_type=spline_type)
     end
     return moved
 end
