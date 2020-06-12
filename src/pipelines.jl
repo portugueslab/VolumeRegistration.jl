@@ -195,9 +195,9 @@ function register_planewise!(
         translated = translate(current_plane, translations)
 
         if output_time_first
-            destination[:, :, :, i_plane] .= permutedims(translated, (3, 1, 2))
+            destination[:, :, :, i_plane] = permutedims(translated, (3, 1, 2))[:,:,:,1]
         else
-            destination[:, :, i_plane, :] .= translated
+            destination[:, :, i_plane, :] = translated[:,:,1,:]
         end
     end
     return (
