@@ -148,7 +148,7 @@ function make_planewise_reference(stack; reference_kw...)
     initial_reference = Array{Float32}(undef, (n_x, n_y, n_planes))
     # disable all the messages when finding references for each plane
     with_logger(SimpleLogger(stderr, Logging.Warn)) do
-        for i_plane in 1:n_planes
+        @showprogress for i_plane in 1:n_planes
             initial_reference[:, :, i_plane] = make_reference(stack[:, :, i_plane, :]; reference_kw...)
         end
     end
@@ -191,11 +191,13 @@ function register_planewise!(
             find_translation(current_plane, reference[:, :, i_plane]; translation_kw...)
         push!(plane_translations, translations)
         push!(plane_correlations, correlations)
+
+        translated = translate(current_plane, translations)
+
         if output_time_first
-            destination[:, :, :, i_plane] =
-                permutedims(translate(current_plane, translations), (3, 1, 2))
+            destination[:, :, :, i_plane] .= permutedims(translated, (3, 1, 2))
         else
-            destination[:, :, i_plane, :] = translate(current_plane, translations)
+            destination[:, :, i_plane, :] .= translated
         end
     end
     return (
