@@ -12,6 +12,7 @@ function register_volumes!(
     σ_filter_rigid = (3.0f0, 3.0f0, 0.1f0),
     border_σ_rigid = (10f0, 10f0, 0.1f0),
     interpolate_middle_rigid = true,
+    nonrigid = true,
     max_shift_nonrigid = (5, 5, 2),
     σ_filter_nonrigid = 1.3f0,
     border_σ_nonrigid = (5f0, 5f0, 1f0),
@@ -38,15 +39,18 @@ function register_volumes!(
 
     @info "Precomputing nonrigid transformation"
 
-    prepared_nonrigid = prepare_find_deformation_map(
-        float_reference;
-        block_size = block_size,
-        max_shift = max_shift_nonrigid,
-        upsampling = upsampling,
-        σ_filter = σ_filter_nonrigid,
-        border_σ = border_σ_nonrigid,
-        block_border_σ = block_border_σ,
-    )
+    if nonrigid
+        prepared_nonrigid = prepare_find_deformation_map(
+            float_reference;
+            block_size = block_size,
+            max_shift = max_shift_nonrigid,
+            upsampling = upsampling,
+            σ_filter = σ_filter_nonrigid,
+            border_σ = border_σ_nonrigid,
+            block_border_σ = block_border_σ,
+        )
+    end
+
     n_t = size(dataset, 4)
 
     shifts = Array{Translation{SVector{3,Int64}}}(undef, n_t)
@@ -74,24 +78,28 @@ function register_volumes!(
 
         translated = translate(moving_slices, shifts[frame_range])
 
-        block_shifts = tmap(
-            mov -> calc_block_offsets(
-                mov,
-                prepared_nonrigid;
-                snr_n_smooths = snr_n_smooths,
-                snr_threshold = snr_threshold,
-                snr_n_pad = (3, 3, 1),
-                interpolate_middle = interpolate_middle_nonrigid,
-            ),
-            eachslice(translated, dims = 4),
-        )
+        if nonrigid
+            block_shifts = tmap(
+                mov -> calc_block_offsets(
+                    mov,
+                    prepared_nonrigid;
+                    snr_n_smooths = snr_n_smooths,
+                    snr_threshold = snr_threshold,
+                    snr_n_pad = (3, 3, 1),
+                    interpolate_middle = interpolate_middle_nonrigid,
+                ),
+                eachslice(translated, dims = 4),
+            )
 
-        undeformed = apply_deformation_map(
-            translated,
-            block_shifts,
-            prepared_nonrigid.blocks,
-            spline_type = interpolation_nonrigid,
-        )
+            undeformed = apply_deformation_map(
+                translated,
+                block_shifts,
+                prepared_nonrigid.blocks,
+                spline_type = interpolation_nonrigid,
+            )
+        else
+            undeformed = translated
+        end
 
         if output_time_first
             destination[frame_range, :, :, :] = @strided(permutedims(
