@@ -1,30 +1,34 @@
 """
     $(SIGNATURES)
 
-Register volumes, by first finding a rigid translationa and then applying non-rigid shifts
+Register volumes, by first finding a rigid translationa and then optionally applying piecewise affine shifts.
+The arguments are from [`find_translation`](@ref) for the pure translation, and from (`find_deformation_map`)(@ref) for the
+piecewise affine transfomration.
 
 """
 function register_volumes!(
     destination,
     dataset,
     reference;
-    max_shift_rigid = (20, 20, 2),
-    σ_filter_rigid = (3.0f0, 3.0f0, 0.1f0),
-    border_σ_rigid = (10f0, 10f0, 0.1f0),
-    interpolate_middle_rigid = true,
-    nonrigid = true,
-    max_shift_nonrigid = (5, 5, 2),
-    σ_filter_nonrigid = 1.3f0,
-    border_σ_nonrigid = (5f0, 5f0, 1f0),
+    max_shift = (20, 20, 2),
+    σ_filter = (3.0f0, 3.0f0, 0.1f0),
+    border_σ = (10f0, 10f0, 0.1f0),
+    interpolate_middle = true,
+    upsampling = 1,
+    upsample_padding = nothing,
+    deform = true,
+    max_shift_deform = (5, 5, 2),
+    σ_filter_deform = 1.3f0,
+    border_σ_deform = (5f0, 5f0, 1f0),
     block_border_σ = (5f0, 5f0, 0.5f0),
     block_size = (256, 256, 4),
-    upsampling = (10, 10, 4),
+    upsampling_deform = (10, 10, 4),
     snr_n_smooths = 2,
     snr_threshold = 1.15f0,
-    interpolate_middle_nonrigid = false,
+    interpolate_middle_deform = false,
     t_block_size,
     output_time_first = true,
-    interpolation_nonrigid = Linear(),
+    interpolation_deform = Linear(),
 )
 
     @info "Precomputing translation"
@@ -32,28 +36,34 @@ function register_volumes!(
 
     prepared_translation = prepare_find_translation(
         float_reference;
-        max_shift = max_shift_rigid,
-        σ_filter = σ_filter_rigid,
-        border_σ = border_σ_rigid,
+        max_shift = max_shift,
+        σ_filter = σ_filter,
+        border_σ = border_σ,
+        upsampling = upsampling,
+        upsample_padding = upsample_padding,
     )
 
     @info "Precomputing nonrigid transformation"
 
-    if nonrigid
+    if deform
         prepared_nonrigid = prepare_find_deformation_map(
             float_reference;
             block_size = block_size,
-            max_shift = max_shift_nonrigid,
-            upsampling = upsampling,
-            σ_filter = σ_filter_nonrigid,
-            border_σ = border_σ_nonrigid,
+            max_shift = max_shift_deform,
+            upsampling = upsampling_deform,
+            σ_filter = σ_filter_deform,
+            border_σ = border_σ_deform,
             block_border_σ = block_border_σ,
         )
     end
 
     n_t = size(dataset, 4)
 
-    shifts = Array{Translation{SVector{3,Int64}}}(undef, n_t)
+    if upsampling == 1
+        shifts = Array{Translation{SVector{3,Int64}}}(undef, n_t)
+    else
+        shifts = Array{Translation{SVector{3,Float64}}}(undef, n_t)
+    end
     correlations = Array{Float32}(undef, n_t)
 
     @info "Correcting blockwise"
@@ -69,7 +79,8 @@ function register_volumes!(
             shift, correlation = prepared_find_translation(
                 moving_slices[:, :, :, i_t],
                 prepared_translation...,
-                interpolate_middle_rigid,
+                interpolate_middle,
+
             )
             idx = first(frame_range) + i_t - 1
             shifts[idx] = shift
@@ -78,7 +89,7 @@ function register_volumes!(
 
         translated = translate(moving_slices, shifts[frame_range])
 
-        if nonrigid
+        if deform
             block_shifts = tmap(
                 mov -> calc_block_offsets(
                     mov,
@@ -86,7 +97,7 @@ function register_volumes!(
                     snr_n_smooths = snr_n_smooths,
                     snr_threshold = snr_threshold,
                     snr_n_pad = (3, 3, 1),
-                    interpolate_middle = interpolate_middle_nonrigid,
+                    interpolate_middle = interpolate_middle_deform,
                 ),
                 eachslice(translated, dims = 4),
             )
@@ -95,7 +106,7 @@ function register_volumes!(
                 translated,
                 block_shifts,
                 prepared_nonrigid.blocks,
-                spline_type = interpolation_nonrigid,
+                spline_type = interpolation_deform,
             )
         else
             undeformed = translated
@@ -145,7 +156,7 @@ end
     $(SIGNATURES)
 
 Make a plane-by-plane reference for 2-photon imaging data. 
-The keyword arguments are from [`find_translation`](@ref)
+The keyword arguments are from [`make_reference`](@ref)
 
 """
 function make_planewise_reference(stack; reference_kw...)

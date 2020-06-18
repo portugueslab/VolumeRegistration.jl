@@ -22,7 +22,7 @@ include("kriging.jl")
 include("reference.jl")
 include("phase_correlation.jl")
 include("translation.jl")
-include("nonrigid.jl")
+include("deformation.jl")
 include("transformation.jl")
 include("pipelines.jl")
 
@@ -34,5 +34,4 @@ export make_reference,
     register_volumes!,
     make_planewise_reference,
     register_planewise!
-
 end

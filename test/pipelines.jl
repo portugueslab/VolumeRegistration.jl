@@ -26,11 +26,11 @@ using Rotations
         output_time_first = false,
         t_block_size = 3,
         block_size = blocksize,
-        upsampling = (8,8,4),
-        σ_filter_nonrigid = nothing,
-        border_σ_nonrigid = nothing,
+        upsampling_deform = (8,8,4),
+        σ_filter_deform = nothing,
+        border_σ_deform= nothing,
         block_border_σ = 1f0,
-        interpolation_nonrigid=Cubic(Line(OnGrid())),
+        interpolation_deform=Cubic(Line(OnGrid())),
     )
 
     im_mid = imsize .÷ 2
