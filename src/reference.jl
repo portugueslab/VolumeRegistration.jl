@@ -47,7 +47,7 @@ function refine_reference(
     for i_iteration = 1:n_iterations
         @info("Refining reference at iteration $(i_iteration) of $(n_iterations)")
         translations, correlations =
-            find_translation(frames, reference, translation_kwargs...)
+            find_translation(frames, reference; translation_kwargs...)
         best_corr_order = sortperm(correlations, rev = true)[1:n_average]
         foreach(
             translate!,
