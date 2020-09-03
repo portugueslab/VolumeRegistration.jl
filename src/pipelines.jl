@@ -2,8 +2,16 @@
     $(SIGNATURES)
 
 Register volumes, by first finding a rigid translationa and then optionally applying piecewise affine shifts.
-The arguments are from [`find_translation`](@ref) for the pure translation, and from (`find_deformation_map`)(@ref) for the
-piecewise affine transfomration.
+
+# Arguments
+- `destination`: the destination for the registered dataset, usually a Float32 subtype of a DiskArray
+- `dataset`: the stack to be registered
+- `reference`: the static volume regerence
+- `deform`: whether to additionally perform non-rigid registration
+- `output_time_first`: whether to reorder the array to have time-first or time-last order
+
+The arguments are from [`find_translation`](@ref) for the pure translation, and from [`find_deformation_map`](@ref) for the
+piecewise affine transfomration (with the suffix `_deform`). 
 
 """
 function register_volumes!(
@@ -155,7 +163,9 @@ end
 """
     $(SIGNATURES)
 
-Make a plane-by-plane reference for 2-photon imaging data. 
+Make a plane-by-plane reference for 2-photon imaging data,
+by first finding a reference image for each plane, and then finding inter-plane shifts
+    and correcting them.
 The keyword arguments are from [`make_reference`](@ref)
 
 """

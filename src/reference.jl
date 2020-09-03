@@ -73,7 +73,7 @@ Make a reference for a stack
 - `n_average`: number of frames to average for a nice reference
 - `n_iterations`: how many times to recalculate the reference from the best correlated moved frames
 
-more keyword arguments for (@ref find_translation) can be supplied
+more keyword arguments for [`find_translation`](@ref) can be supplied
 
 """
 function make_reference(
@@ -108,9 +108,10 @@ function make_reference(
     return if n_iterations > 0
         return refine_reference(
             ref_init_stack,
-            stack[(Colon() for _ = 1:N)..., stack_range],
+            stack[(Colon() for _ = 1:N)..., stack_range];
             n_average = min(n_average_refine, length(stack_range)),
             n_iterations = n_iterations,
+            translation_kwargs...
         )
     else
         return ref_init_stack
