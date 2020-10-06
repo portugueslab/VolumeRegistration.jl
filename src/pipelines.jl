@@ -36,6 +36,7 @@ function register_volumes!(
     interpolate_middle_deform = false,
     t_block_size,
     output_time_first = true,
+    block_range = Colon(),
     interpolation_deform = Linear(),
 )
 
@@ -76,7 +77,7 @@ function register_volumes!(
 
     @info "Correcting blockwise"
 
-    @showprogress for frame_range in Iterators.partition(1:n_t, t_block_size)
+    @showprogress for frame_range in collect(Iterators.partition(1:n_t, t_block_size))[block_range]
         source_slice = dataset[:, :, :, frame_range]
 
         n_tsub = length(frame_range)
